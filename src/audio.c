@@ -281,8 +281,11 @@ void music_jingle_voicelimit_set(u8 voiceLimit) {
     set_voice_limit(gJinglePlayer, voiceLimit);
 }
 
-UNUSED void func_80000C68(u8 arg0) {
-    func_80063A90(gMusicPlayer, arg0);
+/**
+ * Set the channel priority on the music player.
+ */
+UNUSED void music_set_channel_priority(u8 arg0) {
+    audio_set_channel_priority(gMusicPlayer, arg0);
 }
 
 /**
@@ -501,7 +504,10 @@ void music_channel_reset_all(void) {
     }
 }
 
-UNUSED u8 func_80001358(u8 chan1, u8 chan2, s32 arg2) {
+/**
+ * Crossfade volume between two music channels by adjusting their levels.
+ */
+UNUSED u8 music_crossfade_channels(u8 chan1, u8 chan2, s32 arg2) {
     u8 val_1f;
     u8 vol;
     s32 updatedVol;

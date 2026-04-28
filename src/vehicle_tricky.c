@@ -90,7 +90,7 @@ void update_tricky(s32 updateRate, f32 updateRateF, Object *obj, Object_Racer *r
     animFrame = obj->animFrame;
     tempHeadAngle = racer->headAngle;
     if (racer->raceFinished == TRUE) {
-        func_80021400(130);
+        set_animation_pause_state(130);
         racer->raceFinished++;
     }
     tempStartTimer = *startTimer;
@@ -111,7 +111,7 @@ void update_tricky(s32 updateRate, f32 updateRateF, Object *obj, Object_Racer *r
         }
     }
 
-    func_8004F7F4(updateRate, updateRateF, obj, racer);
+    update_racer_plane_banking(updateRate, updateRateF, obj, racer);
     *startTimer = tempStartTimer;
     racer->lateral_velocity = 0.0f;
     racer->headAngle = tempHeadAngle;

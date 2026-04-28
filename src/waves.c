@@ -100,7 +100,7 @@ s32 gWaveTileCountX;    // used in mempool_alloc_safe size calculation
 s32 gWaveTileCountZ;    // used in mempool_alloc_safe size calculation
 s32 gNumberOfLevelSegments;
 s32 D_8012A0E8[64];
-s16 gWaveBlockIDs[512]; // used to index gWaveModel and as arg0 for func_800B92F4 and func_800B97A8
+s16 gWaveBlockIDs[512]; // used to index gWaveModel and as arg0 for wave_render_block and wave_update_block
 unk8012A5E8 D_8012A5E8[2];
 unk8012A5E8 D_8012A600[24];
 f32 gWavePowerBase;
@@ -226,6 +226,9 @@ void waves_init_header(LevelHeader *header) {
     gWaveController.xlu = header->wavesXlu;
 }
 
+/**
+ * Initialises the wave system for a level by computing sine tables, allocating buffers, and configuring wave tiles.
+ */
 void waves_init(LevelModel *model, LevelHeader *header, s32 playerCount) {
     s32 k;
     s32 sineVar2;
@@ -247,7 +250,7 @@ void waves_init(LevelModel *model, LevelHeader *header, s32 playerCount) {
     gWavePlayerCount = playerCount;
     waves_init_header(header);
     waves_alloc();
-    func_800BBDDC(model, header);
+    wave_init_level_basic(model, header);
     gWaveBoundingBoxW = gWaveBoundingBoxDiffX;
     gWaveBoundingBoxH = gWaveBoundingBoxDiffZ;
     gWaveVtxStepX = gWaveBoundingBoxW / gWaveController.subdivisions;
@@ -344,7 +347,7 @@ void waves_init(LevelModel *model, LevelHeader *header, s32 playerCount) {
             var_s5 += 2;
         }
     }
-    func_800BC6C8();
+    wave_reset_all();
 
     var_s5 = (gWaveController.subdivisions + 1) * gWaveController.subdivisions;
     for (i = 0; i < ARRAY_COUNT(D_8012A028); i++) {
@@ -381,7 +384,7 @@ void waves_init(LevelModel *model, LevelHeader *header, s32 playerCount) {
         D_8012A028[i][3].a = gWaveVertices[i][0][var_s5 + gWaveController.subdivisions].a;
     }
 
-    func_800BCC70(model);
+    wave_generate_from_model(model);
     if (gWaveController.waveViewDist == 3) {
         D_800E30E0 = D_800E30E8;
         D_800E30E4 = D_800E30FC;
@@ -408,6 +411,9 @@ void waves_visibility_reset(void) {
     }
 }
 
+/**
+ * Determines which wave tiles are visible from the camera position and marks them for rendering.
+ */
 void waves_visibility(s32 xPosition, s32 yPosition, s32 zPosition, s32 currentViewport, s32 updateRate) {
     s32 xPosRatio;
     s32 zPosRatio;
@@ -547,7 +553,7 @@ void waves_visibility(s32 xPosition, s32 yPosition, s32 zPosition, s32 currentVi
         }
     }
 
-    func_800BA288(currentViewport, updateRate);
+    wave_animate_vertices(currentViewport, updateRate);
 }
 
 /**
@@ -566,7 +572,10 @@ s32 waves_block_hq(LevelModelSegment *block) {
     return result;
 }
 
-void func_800B92F4(s32 blockID, s32 viewportID) {
+/**
+ * Render a wave block for the given viewport.
+ */
+void wave_render_block(s32 blockID, s32 viewportID) {
     s32 i;
     s32 var_s2;
     s32 j;
@@ -662,7 +671,10 @@ void func_800B92F4(s32 blockID, s32 viewportID) {
     }
 }
 
-void func_800B97A8(s32 blockID, s32 arg1) {
+/**
+ * Update wave vertex positions for a block.
+ */
+void wave_update_block(s32 blockID, s32 arg1) {
     s32 var_v0;
     f32 temp_f26;
     s32 vertexIdx;
@@ -859,7 +871,7 @@ void waves_update(s32 updateRate) {
             .v;
 
     if (gWaveGenCount > 0) {
-        func_800BFE98(updateRate);
+        wave_update_all(updateRate);
     }
 
     if (gWavePowerDivisor <= 0) {
@@ -875,7 +887,10 @@ void waves_update(s32 updateRate) {
     }
 }
 
-void func_800BA288(s32 arg0, s32 arg1) {
+/**
+ * Animate wave vertices using sine-based displacement.
+ */
+void wave_animate_vertices(s32 arg0, s32 arg1) {
     s32 i;
     s32 j;
 
@@ -1033,9 +1048,9 @@ void waves_render(Gfx **dList, Mtx **mtx, s32 viewportID) {
         // High Quality water
         for (; i < gVisibleWaveTiles; i++) {
             if (gWaveController.xlu) {
-                func_800B92F4(gWaveBlockIDs[i], viewportID);
+                wave_render_block(gWaveBlockIDs[i], viewportID);
             } else {
-                func_800B97A8(gWaveBlockIDs[i], viewportID);
+                wave_update_block(gWaveBlockIDs[i], viewportID);
             }
             spE0 = &gWaveModel[gWaveBlockIDs[i]];
             transform.x_position = spE0->originX;
@@ -1099,7 +1114,10 @@ void waves_render(Gfx **dList, Mtx **mtx, s32 viewportID) {
     gVisibleWaveTiles = 0;
 }
 
-f32 func_800BB2F4(s32 arg0, f32 arg1, f32 arg2, Vec3f *arg3) {
+/**
+ * Get the interpolated wave height at a world position.
+ */
+f32 wave_get_height_at_point(s32 arg0, f32 arg1, f32 arg2, Vec3f *arg3) {
     f32 spA4;
     f32 spA0;
     f32 var_f12;
@@ -1310,13 +1328,19 @@ f32 func_800BB2F4(s32 arg0, f32 arg1, f32 arg2, Vec3f *arg3) {
     return sp78;
 }
 
-void func_800BBDDC(LevelModel *level, LevelHeader *header) {
-    func_800BBE08(level, header);
-    func_800BBF78(level);
+/**
+ * Initialize basic wave data for a level.
+ */
+void wave_init_level_basic(LevelModel *level, LevelHeader *header) {
+    wave_init_level_extended(level, header);
+    wave_init_model_data(level);
 }
 
 // determines current bounding box, batch and texture
-void func_800BBE08(LevelModel *level, LevelHeader *header) {
+/**
+ * Initialize extended wave data with header properties.
+ */
+void wave_init_level_extended(LevelModel *level, LevelHeader *header) {
     s16 numSegments;
     s32 j;
     TriangleBatchInfo *curBatch;
@@ -1359,7 +1383,10 @@ void func_800BBE08(LevelModel *level, LevelHeader *header) {
     }
 }
 
-void func_800BBF78(LevelModel *model) {
+/**
+ * Initialize wave model vertex and triangle data.
+ */
+void wave_init_model_data(LevelModel *model) {
     LevelModelSegmentBoundingBox *levelSegmentBoundingBoxes;
     s32 j;
     s32 temp_t1;
@@ -1495,7 +1522,10 @@ void func_800BBF78(LevelModel *model) {
     }
 }
 
-void func_800BC6C8(void) {
+/**
+ * Reset all wave state to defaults.
+ */
+void wave_reset_all(void) {
     s32 i;
     s32 j;
     s32 k;
@@ -1583,7 +1613,10 @@ void func_800BC6C8(void) {
     }
 }
 
-void func_800BCC70(LevelModel *model) {
+/**
+ * Generate wave geometry from the level model.
+ */
+void wave_generate_from_model(LevelModel *model) {
     s32 i;
     u32 pad_sp188;
     s32 sp184;
@@ -1841,7 +1874,10 @@ void func_800BCC70(LevelModel *model) {
     mempool_free(spA0);
 }
 
-s32 func_800BDC80(s32 arg0, unk8011C3B8* arg1, unk8011C8B8* arg2, f32 shadowXNegPosition, f32 shadowZNegPosition, f32 shadowXPosition, f32 shadowZPosition) {
+/**
+ * Check shadow collision against wave surface geometry.
+ */
+s32 wave_shadow_collision_check(s32 arg0, unk8011C3B8* arg1, unk8011C8B8* arg2, f32 shadowXNegPosition, f32 shadowZNegPosition, f32 shadowXPosition, f32 shadowZPosition) {
     s32 colCount;
     s32 startCol;
     s32 startRow;
@@ -2013,6 +2049,9 @@ s32 func_800BDC80(s32 arg0, unk8011C3B8* arg1, unk8011C8B8* arg2, f32 shadowXNeg
     return counter;
 }
 
+/**
+ * Initialises a wave object at the given position by computing its height offsets within the wave tile grid.
+ */
 Object_Log *obj_wave_init(s32 blockID, f32 x, f32 z) {
     f32 spE4;
     f32 temp_f;
@@ -2236,7 +2275,9 @@ f32 obj_wave_height(Object_Log *log, s32 updateRate) {
     return y;
 }
 
-// height related calculation?
+/**
+ * Computes the wave surface height at a given tile position by summing contributions from all active wave generators.
+ */
 f32 waves_get_y(s32 blockID, s32 arg1, s32 arg2) {
     f32 dist;
     f32 distSq;
@@ -2469,7 +2510,10 @@ WaveGen *wavegen_register(Object *obj, f32 xPos, f32 zPos, f32 waveSize, s32 arg
     return result;
 }
 
-UNUSED void func_800BF9F8(WaveGen *gen, f32 arg1, f32 arg2) {
+/**
+ * Unused wave generator update function.
+ */
+UNUSED void unused_wave_gen_update(WaveGen *gen, f32 arg1, f32 arg2) {
     UNUSED s32 pad[4];
     s32 sp1C;
     f32 var_f0;
@@ -2546,6 +2590,9 @@ UNUSED void func_800BF9F8(WaveGen *gen, f32 arg1, f32 arg2) {
     }
 }
 
+/**
+ * Adjusts a wave generator's radius, speed, and amplitude parameters by the given delta values.
+ */
 UNUSED void wavegen_scale(WaveGen *gen, f32 radiusAdd, f32 arg2, f32 arg3, f32 arg4) {
     if (gen == NULL) {
         return;
@@ -2574,7 +2621,10 @@ UNUSED void wavegen_scale(WaveGen *gen, f32 radiusAdd, f32 arg2, f32 arg3, f32 a
     gen->unk24 += arg4;
 }
 
-void func_800BFE98(s32 updateRate) {
+/**
+ * Update all active wave animations each frame.
+ */
+void wave_update_all(s32 updateRate) {
     s32 i;
 
     for (i = 0; i < 32; i++) {

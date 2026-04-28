@@ -71,7 +71,7 @@ void update_bubbler(s32 updateRate, f32 updateRateF, Object *obj, Object_Racer *
     animFrame = obj->animFrame;
     tempHeadAngle = racer->headAngle;
     if (racer->raceFinished == TRUE) {
-        func_80021400(130);
+        set_animation_pause_state(130);
         racer->raceFinished++;
     }
     timer = *startTimer;
@@ -92,7 +92,7 @@ void update_bubbler(s32 updateRate, f32 updateRateF, Object *obj, Object_Racer *
             gBubblerStartBoost = FALSE;
         }
     }
-    func_8004F7F4(updateRate, updateRateF, obj, racer);
+    update_racer_plane_banking(updateRate, updateRateF, obj, racer);
     *startTimer = timer;
     racer->lateral_velocity = 0.0f;
     racer->headAngle = tempHeadAngle;
@@ -133,7 +133,7 @@ void update_bubbler(s32 updateRate, f32 updateRateF, Object *obj, Object_Racer *
     }
     obj->animFrame = racer->animationSpeed;
     if (racer->playerIndex == PLAYER_COMPUTER) {
-        temp2 = func_80023568();
+        temp2 = get_active_animation_count();
         if (temp2 != 0) {
             objectID = ASSET_OBJECT_ID_OCTOBUBBLE;
             if (temp2 == 6) {

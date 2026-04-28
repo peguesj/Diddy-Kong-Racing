@@ -103,16 +103,16 @@ void obj_init_animator(Object *obj, LevelObjectEntry_Animator *entry, s32 param)
 void obj_loop_animobject(Object *obj, s32 updateRate);
 void obj_loop_dooropener(Object *obj, s32 updateRate);
 void obj_init_overridepos(Object *obj, LevelObjectEntry_OverridePos *entry);
-void func_80037D60(s32 arg0, s32 arg1);
+void obj_action_primary(s32 arg0, s32 arg1);
 void obj_init_wizpigship(Object *obj, LevelObjectEntry_WizpigShip *entry);
 void obj_init_hittester(Object *obj, LevelObjectEntry_HitTester *entry);
 void obj_loop_hittester(Object *obj, s32 updateRate);
 void obj_init_dynamic_lighting_object(Object *obj, LevelObjectEntry_DynamicLightingObject *entry);
 void obj_init_unknown96(Object *obj, LevelObjectEntry_Unknown96 *entry);
 void obj_init_snowball(Object *obj, LevelObjectEntry_Snowball *entry);
-void func_80038330(s32 arg0, s32 arg1);
+void obj_action_secondary(s32 arg0, s32 arg1);
 void obj_loop_animcamera(Object *obj, s32 updateRate);
-void func_800387C0(s32 arg0, s32 arg1);
+void obj_action_tertiary(s32 arg0, s32 arg1);
 void obj_loop_animcar(Object *obj, s32 updateRate);
 void obj_init_infopoint(Object *obj, LevelObjectEntry_InfoPoint *entry);
 void obj_loop_infopoint(Object *obj, s32 updateRate);
@@ -214,9 +214,9 @@ void obj_loop_lasergun(Object *obj, s32 updateRate);
 void play_rocket_trailing_sound(Object *obj, struct Object_Weapon *weapon, u16 soundID);
 void rocket_prevent_overshoot(Object *obj, s32 updateRate, Object_Weapon *rocket);
 void homing_rocket_prevent_overshoot(Object *obj, s32 updateRate, Object_Weapon *rocket);
-void func_8001F23C(Object *obj, LevelObjectEntry_Animation *animEntry);
+void spawn_cutscene_object(Object *obj, LevelObjectEntry_Animation *animEntry);
 void obj_loop_effectbox(Object *obj, s32 updateRate);
-void func_8001EE74(void);
+void spawn_cutscene_animation_targets(void);
 void obj_loop_door(Object *doorObj, s32 updateRate);
 void obj_loop_fish(Object *fishObj, s32 updateRate);
 void obj_loop_weaponballoon(Object *weaponBalloonObj, s32 updateRate);
@@ -251,10 +251,10 @@ void obj_init_fish(Object *fishObj, LevelObjectEntry_Fish *fishEntry, s32 param)
 void obj_init_midifade(Object *obj, LevelObjectEntry_MidiFade *entry);
 void obj_loop_butterfly(Object *butterflyObj, s32 updateRate);
 s32 ainode_find_nearest(f32 diffX, f32 diffY, f32 diffZ, s32 useElevation);
-void func_8000CBF0(Object *, s32);
+void object_slots_set(Object *, s32);
 void try_to_collect_egg(Object *, Object_CollectEgg *);
 
-s32 func_8001F3EC(s32);
-s32 func_80021600(s32);
+s32 count_animated_objects_by_behaviour(s32);
+s32 get_animation_actor_count(s32);
 
 #endif

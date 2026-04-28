@@ -1066,6 +1066,9 @@ UNUSED s32 sprite_cache_index(s32 cacheID) {
     return gSpriteCache[ASSETCACHE_PTR(cacheID)];
 }
 
+/**
+ * Returns the ROM size in bytes of the texture asset with the given ID.
+ */
 s32 tex_asset_size(s32 id) {
     s32 textureRomOffset;
     TempTexHeader *new_var2;
@@ -1101,7 +1104,10 @@ s32 tex_asset_size(s32 id) {
     return (((numOfTextures >> 8) & 0xFFFF) * 0x60) + size;
 }
 
-UNUSED u8 func_8007C660(s32 texID) {
+/**
+ * Check whether a 2D sprite texture has been loaded into the texture cache.
+ */
+UNUSED u8 tex_is_sprite_loaded(s32 texID) {
     SpriteAsset *spriteAsset;
     s32 j;
     s32 i;
@@ -1150,6 +1156,9 @@ UNUSED s32 sprite_cache_asset_id(s32 cacheID) {
     return gSpriteCache[ASSETCACHE_ID(cacheID)];
 }
 
+/**
+ * Loads sprite metadata (anchor, frame count, format, size) for the given sprite index from the asset table.
+ */
 s32 load_sprite_info(s32 spriteIndex, s32 *anchorXOut, s32 *anchorYOut, s32 *numFramesOut, s32 *formatOut,
                      s32 *sizeOut) {
     TextureHeader *tex;
@@ -1190,7 +1199,10 @@ s32 load_sprite_info(s32 spriteIndex, s32 *anchorXOut, s32 *anchorYOut, s32 *num
     goto textureCouldNotBeLoaded;
 }
 
-void func_8007CA68(s32 arg0, s32 arg1, s32 *arg2, s32 *arg3, s32 *arg4) {
+/**
+ * Compute the bounding width, height, and total asset size for a given sprite frame by iterating its constituent textures.
+ */
+void sprite_get_frame_bounds(s32 arg0, s32 arg1, s32 *arg2, s32 *arg3, s32 *arg4) {
     SpriteAsset *spriteAsset;
     TextureHeader *tex;
     s32 temp_a0;
@@ -1680,7 +1692,10 @@ void tex_animate_texture(TextureHeader *texture, u32 *triangleBatchInfoFlags, s3
     }
 }
 
-void func_8007F1E8(LevelHeader_70 *arg0) {
+/**
+ * Reset a colour cycle entry to its initial RGBA values and recompute the total cycle duration from all keyframes.
+ */
+void reset_colour_cycle(LevelHeader_70 *arg0) {
     s32 i;
 
     arg0->unk4 = 0;

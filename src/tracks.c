@@ -370,7 +370,7 @@ void render_scene(Gfx **dList, Mtx **mtx, Vertex **vtx, Triangle **tris, s32 upd
         gDPPipeSync(gTrackDL++);
         set_active_camera(gSceneCurrentPlayerID);
         viewport_main(&gTrackDL, &gTrackMtxPtr);
-        func_8002A31C();
+        track_update_water_animation();
         // Show detailed skydome in single player.
         if (numViewports < 2) {
             mtx_world_origin(&gTrackDL, &gTrackMtxPtr);
@@ -382,7 +382,7 @@ void render_scene(Gfx **dList, Mtx **mtx, Vertex **vtx, Triangle **tris, s32 upd
         } else {
             mtx_perspective(&gTrackDL, &gTrackMtxPtr);
             trackbg_render_gradient();
-            func_80067D3C(&gTrackDL, &gTrackMtxPtr);
+            camera_apply_view_projection(&gTrackDL, &gTrackMtxPtr);
             mtx_world_origin(&gTrackDL, &gTrackMtxPtr);
         }
         gDPPipeSync(gTrackDL++);
@@ -410,10 +410,10 @@ void render_scene(Gfx **dList, Mtx **mtx, Vertex **vtx, Triangle **tris, s32 upd
             disable_cutscene_camera();
             ttcam_update(updateRate);
             viewport_main(&gTrackDL, &gTrackMtxPtr);
-            func_8002A31C();
+            track_update_water_animation();
             mtx_perspective(&gTrackDL, &gTrackMtxPtr);
             trackbg_render_gradient();
-            func_80067D3C(&gTrackDL, &gTrackMtxPtr);
+            camera_apply_view_projection(&gTrackDL, &gTrackMtxPtr);
             mtx_world_origin(&gTrackDL, &gTrackMtxPtr);
             gDPPipeSync(gTrackDL++);
             initialise_player_viewport_vars(updateRate);
@@ -518,7 +518,9 @@ void void_free(void) {
     }
 }
 
-// root func for the out of bounds void rendering
+/**
+ * Renders the out-of-bounds void geometry by checking visible segments against the camera.
+ */
 void void_check(u8 *segmentIds, s32 numberOfSegments, s32 viewportIndex) {
     s16 i;
     s16 j;
@@ -566,17 +568,17 @@ void void_check(u8 *segmentIds, s32 numberOfSegments, s32 viewportIndex) {
         breakLoop += bbox->x1 * yCameraSins + yCameraCoss * bbox->z2 + temp_f22 <= 0.0;
         breakLoop += yCameraSins * bbox->x2 + yCameraCoss * bbox->z2 + temp_f22 <= 0.0;
         if (breakLoop & 3) {
-            func_80026430(&gCurrentLevelModel->segments[segmentIds[i]], yCameraSins, yCameraCoss, temp_f22);
+            segment_find_surface_height(&gCurrentLevelModel->segments[segmentIds[i]], yCameraSins, yCameraCoss, temp_f22);
             if (gCurrentLevelModel->segments[segmentIds[i]].unk3C & 2) {
-                func_80026070(bbox, yCameraSins, yCameraCoss, temp_f22);
+                segment_bbox_check_point(bbox, yCameraSins, yCameraCoss, temp_f22);
             }
         }
     }
 
-    func_80026C14(300, gCurrentLevelModel->lowerYBounds - 195, 1);
-    func_80026C14(-300, gCurrentLevelModel->lowerYBounds - 195, 1);
-    func_80026C14(300, gCurrentLevelModel->upperYBounds + 195, 0);
-    func_80026C14(-300, gCurrentLevelModel->upperYBounds + 195, 0);
+    track_add_visible_segment(300, gCurrentLevelModel->lowerYBounds - 195, 1);
+    track_add_visible_segment(-300, gCurrentLevelModel->lowerYBounds - 195, 1);
+    track_add_visible_segment(300, gCurrentLevelModel->upperYBounds + 195, 0);
+    track_add_visible_segment(-300, gCurrentLevelModel->upperYBounds + 195, 0);
 
     if (D_8011D49E >= D_8011D4BA || D_8011D49E == 0) {
         return;
@@ -648,7 +650,7 @@ void void_check(u8 *segmentIds, s32 numberOfSegments, s32 viewportIndex) {
         if (i < D_8011D49E) {
             temp_s3 = D_8011D478[i].unk0;
             if (var_s4 != temp_s3) {
-                func_80026E54(var_s0, sp7C, temp_s3, var_s4);
+                track_update_segment_visibility(var_s0, sp7C, temp_s3, var_s4);
                 var_s4 = temp_s3;
             }
         }
@@ -661,7 +663,10 @@ void void_check(u8 *segmentIds, s32 numberOfSegments, s32 viewportIndex) {
     gTrackTriPtr = tri;
 }
 
-void func_80026070(LevelModelSegmentBoundingBox *arg0, f32 arg1, f32 arg2, f32 arg3) {
+/**
+ * Check if a point is inside a level segment bounding box.
+ */
+void segment_bbox_check_point(LevelModelSegmentBoundingBox *arg0, f32 arg1, f32 arg2, f32 arg3) {
     f32 sp80[4];
     f32 sp70[4];
     f32 sp60[4];
@@ -731,12 +736,15 @@ void func_80026070(LevelModelSegmentBoundingBox *arg0, f32 arg1, f32 arg2, f32 a
         if (sp60[1] > 300.0) {
             sp60[1] = 300.0f;
         }
-        func_80026C14(sp60[1], gCurrentLevelModel->lowerYBounds - 195, 0);
-        func_80026C14(sp60[0], gCurrentLevelModel->lowerYBounds - 195, 0);
+        track_add_visible_segment(sp60[1], gCurrentLevelModel->lowerYBounds - 195, 0);
+        track_add_visible_segment(sp60[0], gCurrentLevelModel->lowerYBounds - 195, 0);
     }
 }
 
-void func_80026430(LevelModelSegment *segment, f32 arg1, f32 arg2, f32 arg3) {
+/**
+ * Find the surface height at a point within a level segment.
+ */
+void segment_find_surface_height(LevelModelSegment *segment, f32 arg1, f32 arg2, f32 arg3) {
     s16 i;
     s16 index;
     s16 verticesOffset;
@@ -855,15 +863,18 @@ void func_80026430(LevelModelSegment *segment, f32 arg1, f32 arg2, f32 arg3) {
                     if (spC4[0] == spC4[1]) {
                         var_s0 |= 8;
                     }
-                    func_80026C14(spC4[0], spB8[0], var_s0);
-                    func_80026C14(spC4[1], spB8[1], var_s0);
+                    track_add_visible_segment(spC4[0], spB8[0], var_s0);
+                    track_add_visible_segment(spC4[1], spB8[1], var_s0);
                 }
             }
         }
     }
 }
 
-void func_80026C14(s16 arg0, s16 arg1, s32 arg2) {
+/**
+ * Add a segment to the visible segment render list.
+ */
+void track_add_visible_segment(s16 arg0, s16 arg1, s32 arg2) {
     s16 i;
     s16 j;
 
@@ -896,7 +907,10 @@ void func_80026C14(s16 arg0, s16 arg1, s32 arg2) {
     }
 }
 
-void func_80026E54(s16 arg0, s8 *arg1, f32 arg2, f32 arg3) {
+/**
+ * Update visibility state for segments based on distance.
+ */
+void track_update_segment_visibility(s16 arg0, s8 *arg1, f32 arg2, f32 arg3) {
     UNUSED s32 pad[7];
     unk8011D478 *next;
     unk8011D478 *curr;
@@ -969,6 +983,9 @@ void func_80026E54(s16 arg0, s8 *arg1, f32 arg2, f32 arg3) {
     }
 }
 
+/**
+ * Generates a single void quad primitive from two edge positions and adds it to the display list.
+ */
 s32 void_generate_primitive(f32 *arg0, f32 *arg1, f32 arg2, f32 arg3) {
     Vertex *verts;
     Triangle *tris;
@@ -1075,7 +1092,10 @@ s32 void_generate_primitive(f32 *arg0, f32 *arg1, f32 arg2, f32 arg3) {
     return NULL;
 }
 
-s32 func_80027568(void) {
+/**
+ * Update the list of visible level segments for rendering.
+ */
+s32 track_update_visible_segments(void) {
     LevelModelSegment *segment; // spE4
     s32 ret;
     s32 var_t4;
@@ -1351,9 +1371,10 @@ void set_skydome_visbility(s32 renderSky) {
     gSceneRenderSkyDome = renderSky;
 }
 
-// https://decomp.me/scratch/E1DFy
+/**
+ * Renders the animated flashing sky background effect used in the Wizpig 2 race.
+ */
 #ifdef NON_MATCHING
-// This function creates the flashy sky effect in the wizpig 2 race.
 void trackbg_render_flashy(void) {
     Triangle *tris;
     Vertex *verts;
@@ -1732,7 +1753,7 @@ void render_level_geometry_and_objects(void) {
     s32 visible;
     Object *obj;
 
-    func_80012C30();
+    dlist_segments_reset();
 
     if (get_settings()->courseId == ASSET_LEVEL_OPENINGSEQUENCE) {
         gAntiAliasing = TRUE;
@@ -1831,7 +1852,7 @@ void render_level_geometry_and_objects(void) {
 
     rendermode_reset(&gTrackDL);
     material_set_no_tex_offset(&gTrackDL, NULL, RENDER_FOG_ACTIVE | RENDER_Z_COMPARE);
-    func_80012C3C(&gTrackDL);
+    dlist_segments_render(&gTrackDL);
 
     // Particles and FX
     for (i = objCount - 1; i >= sp160; i--) {
@@ -1870,7 +1891,7 @@ void render_level_geometry_and_objects(void) {
         }
     }
 
-    if (gVoidData != NULL && func_80027568()) {
+    if (gVoidData != NULL && track_update_visible_segments()) {
         void_check(segmentIds, numberOfSegments, get_current_viewport());
     }
     gAntiAliasing = FALSE;
@@ -2189,7 +2210,10 @@ LevelModelSegmentBoundingBox *block_boundbox(s32 segmentID) {
     return &gCurrentLevelModel->segmentsBoundingBoxes[segmentID];
 }
 
-void func_8002A31C(void) {
+/**
+ * Update water surface animation and wave offsets.
+ */
+void track_update_water_animation(void) {
     f32 ox1;
     f32 oy1;
     f32 oz1;
@@ -2394,7 +2418,10 @@ s32 check_if_in_draw_range(Object *obj) {
     return TRUE;
 }
 
-UNUSED void func_8002AC00(s32 arg0, s32 arg1, s32 arg2) {
+/**
+ * Unused function that swaps two track segments.
+ */
+UNUSED void unused_track_segment_swap(s32 arg0, s32 arg1, s32 arg2) {
     s32 index;
     s32 index2;
     u8 temp;
@@ -2493,7 +2520,10 @@ s32 get_wave_properties(f32 yPos, f32 *waterHeight, Vec3f *rotation) {
 
 // https://decomp.me/scratch/5Useu
 #ifdef NON_EQUIVALENT
-s32 func_8002B0F4(s32 levelSegmentIndex, f32 xIn, f32 zIn, WaterProperties ***arg3) {
+/**
+ * Find water properties at a given XZ position in the level.
+ */
+s32 track_find_water_at_point(s32 levelSegmentIndex, f32 xIn, f32 zIn, WaterProperties ***arg3) {
     LevelModelSegment *currentSegment;
     LevelModelSegmentBoundingBox *currentBoundingBox;
     Triangle *tri;
@@ -2648,7 +2678,7 @@ s32 func_8002B0F4(s32 levelSegmentIndex, f32 xIn, f32 zIn, WaterProperties ***ar
         D_8011D128[yOutCount].type = SURFACE_WATER_WAVY;
         if (currentSegment->hasWaves && gWaveBlockCount != 0) {
             D_8011D128[yOutCount].waveHeight =
-                func_800BB2F4(levelSegmentIndex, xIn, zIn, &(yOutCount + D_8011D128)->rot);
+                wave_get_height_at_point(levelSegmentIndex, xIn, zIn, &(yOutCount + D_8011D128)->rot);
         } else {
             D_8011D128[yOutCount].waveHeight = currentSegment->unk38;
             D_8011D128[yOutCount].rot.x = 0.0f;
@@ -2683,10 +2713,13 @@ s32 func_8002B0F4(s32 levelSegmentIndex, f32 xIn, f32 zIn, WaterProperties ***ar
     return yOutCount;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/tracks/func_8002B0F4.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/tracks/track_find_water_at_point.s")
 #endif
 
-s32 func_8002B9BC(Object *obj, f32 *arg1, Vec3f *arg2, s32 arg3) {
+/**
+ * Get surface type and normal vector at an object position.
+ */
+s32 track_get_surface_info(Object *obj, f32 *arg1, Vec3f *arg2, s32 arg3) {
     LevelModelSegment *seg;
 
     if (arg2 != NULL) {
@@ -2699,7 +2732,7 @@ s32 func_8002B9BC(Object *obj, f32 *arg1, Vec3f *arg2, s32 arg3) {
     }
     seg = &gCurrentLevelModel->segments[obj->segmentID];
     if ((seg->hasWaves != 0) && (gWaveBlockCount != 0) && (arg3 == 1)) {
-        *arg1 = func_800BB2F4(obj->segmentID, obj->trans.x_position, obj->trans.z_position, arg2);
+        *arg1 = wave_get_height_at_point(obj->segmentID, obj->trans.x_position, obj->trans.z_position, arg2);
         return TRUE;
     } else {
         *arg1 = seg->unk38;
@@ -2842,7 +2875,9 @@ s32 collision_get_y(s32 levelSegmentIndex, f32 xIn, f32 zIn, f32 *yOut) {
     return yOutCount;
 }
 
-// Loads a level track from the index in the models table.
+/**
+ * Loads and decompresses a level track model from the asset table, then resolves all internal pointers.
+ */
 void generate_track(s32 modelId) {
     s32 i, j, k;
     s32 temp_s4;
@@ -2899,10 +2934,10 @@ void generate_track(s32 modelId) {
         j = (s32) align16(((u8 *) (gCurrentLevelModel->segments[k].numberOfTriangles * 2)) + j);
         gCurrentLevelModel->segments[k].collisionPlanes = (f32 *) j;
         j = (s32) & ((u8 *) j)[track_init_collision(&gCurrentLevelModel->segments[k])];
-        func_8002C954(&gCurrentLevelModel->segments[k], &gCurrentLevelModel->segmentsBoundingBoxes[k], k);
+        segment_update_bounding_box(&gCurrentLevelModel->segments[k], &gCurrentLevelModel->segmentsBoundingBoxes[k], k);
         gCurrentLevelModel->segments[k].unk30 = 0;
         gCurrentLevelModel->segments[k].unk34 = (s16 *) j;
-        func_8002C71C(&gCurrentLevelModel->segments[k]);
+        segment_calculate_height_range(&gCurrentLevelModel->segments[k]);
         j = (s32) align16(((u8 *) (gCurrentLevelModel->segments[k].unk32 * 2)) + j);
     }
     temp_s4 = j - (s32) gCurrentLevelModel;
@@ -2934,7 +2969,10 @@ void generate_track(s32 modelId) {
     set_texture_colour_tag(COLOUR_TAG_MAGENTA);
 }
 
-void func_8002C71C(LevelModelSegment *segment) {
+/**
+ * Calculate the min-max Y height range for a segment.
+ */
+void segment_calculate_height_range(LevelModelSegment *segment) {
     s32 curVertY;
     s32 numVerts;
     s32 i;
@@ -2992,7 +3030,10 @@ void free_track(void) {
     gCurrentLevelModel = NULL;
 }
 
-void func_8002C954(LevelModelSegment *segment, LevelModelSegmentBoundingBox *bbox, UNUSED s32 arg2) {
+/**
+ * Update a segment bounding box from vertex data.
+ */
+void segment_update_bounding_box(LevelModelSegment *segment, LevelModelSegmentBoundingBox *bbox, UNUSED s32 arg2) {
     Vertex *vert;
     s16 boxDelta;
     s32 vertZ;
@@ -3074,6 +3115,9 @@ void func_8002C954(LevelModelSegment *segment, LevelModelSegmentBoundingBox *bbo
     }
 }
 
+/**
+ * Computes collision plane normals and distances for each triangle in a level model segment.
+ */
 s32 track_init_collision(LevelModelSegment *block) {
     s32 facesOffset;
     s32 verticesOffset;
@@ -3242,6 +3286,9 @@ typedef struct unk8002D30C_a0 {
     struct unk8002D30C_a0 *unk08;
 } unk8002D30C_a0;
 
+/**
+ * Recursively converts relative BSP tree node pointers to absolute RAM addresses.
+ */
 void trackMakeAbsolute(unk8002D30C_a0 *arg0, s32 arg1) {
     while (1) {
         if (!arg0) {
@@ -3442,7 +3489,7 @@ void shadow_update(s32 group, s32 waterGroup, s32 updateRate) {
                 }
             }
             if (skipShading == FALSE && obj->shading != NULL) {
-                func_8002DE30(obj);
+                track_update_object_segment(obj);
             }
         }
         if (waterEffect != NULL && waterEffect->scale > 0.0f && waterGroup == objHeader->waterEffectGroup) {
@@ -3482,7 +3529,10 @@ void shadow_update(s32 group, s32 waterGroup, s32 updateRate) {
     gCurrShadowHeapData[gShadowTail].vtxCount = gNewShadowVtxCount;
 }
 
-void func_8002DE30(Object *obj) {
+/**
+ * Update which level segment an object is currently in.
+ */
+void track_update_object_segment(Object *obj) {
     s32 sp94;
     s32 sp90;
     s32 blockId;
@@ -3630,7 +3680,7 @@ void shadow_generate(Object *obj, s32 isWater) {
     for (i = 0; i < segs; i++) {
         if (inSegs[i] >= 0) {
             if (isWater && (gCurrentLevelModel->segments[inSegs[i]].hasWaves != 0) && (gWaveBlockCount != 0)) {
-                func_8002EEEC(inSegs[i]);
+                track_render_water_surface(inSegs[i]);
             } else {
                 test = compute_grid_overlap_mask(&gCurrentLevelModel->segmentsBoundingBoxes[inSegs[i]],
                                                  (obj->trans.x_position - gNewShadowWidth),  // x1
@@ -3638,16 +3688,16 @@ void shadow_generate(Object *obj, s32 isWater) {
                                                  (obj->trans.x_position + gNewShadowWidth),  // x2
                                                  (obj->trans.z_position + gNewShadowLength)  // z2
                 );
-                func_8002E904(&gCurrentLevelModel->segments[inSegs[i]], test, isWater);
+                track_render_segment_water(&gCurrentLevelModel->segments[inSegs[i]], test, isWater);
             }
         }
     }
     if (D_8011C230 > 0) {
         if ((obj->shading != NULL) && isWater == FALSE) {
-            obj->shading->unk0 = func_8002FA64();
+            obj->shading->unk0 = track_calculate_wave_height();
         }
-        func_8002F2AC();
-        func_8002F440();
+        track_update_wave_positions();
+        track_render_wave_geometry();
     }
     if (isWater == FALSE) {
         obj->shadow->meshEnd = gShadowTail;
@@ -3656,7 +3706,10 @@ void shadow_generate(Object *obj, s32 isWater) {
     }
 }
 
-void func_8002E904(LevelModelSegment *arg0, s32 arg1, s32 arg2) {
+/**
+ * Render water surface geometry for a level segment.
+ */
+void track_render_segment_water(LevelModelSegment *arg0, s32 arg1, s32 arg2) {
     unk8011C8B8 sp100[8];
     Vec2f spD0[4];
     s32 spAC;
@@ -3709,16 +3762,16 @@ void func_8002E904(LevelModelSegment *arg0, s32 arg1, s32 arg2) {
                                 sp100[i].z = vertices[triangles->verticesArray[i + 1]].z;
                                 sp100[i].unkC_union.s.unkE = -1;
                             }
-                            // @note while the cast to Vec4f is incorrect, func_8002FD74 x uses unk0 and z which
+                            // @note while the cast to Vec4f is incorrect, track_point_in_polygon x uses unk0 and z which
                             // are both floats so this is fine as the size is the same
-                            if (func_8002FD74(spD0[2].x, spD0[2].y, spD0[0].x, spD0[0].y, 3, (Vec4f *) sp100) != 0) {
+                            if (track_point_in_polygon(spD0[2].x, spD0[2].y, spD0[0].x, spD0[0].y, 3, (Vec4f *) sp100) != 0) {
                                 temp_t6 = arg0->collisionFacets[curFacesOffset].basePlaneIndex * 4;
                                 D_8011D0BC = (unk8011C8B8 *) &(arg0->collisionPlanes)[temp_t6];
                                 if (arg0->collisionPlanes[temp_t6 + 1] != 0) {
                                     if (D_8011D0F0 > 0.0f) {
-                                        func_800304C8(sp100);
+                                        track_calculate_shadow_position(sp100);
                                     }
-                                    someCount = func_8002FF6C(3, sp100, 4, spD0);
+                                    someCount = track_check_segment_overlap(3, sp100, 4, spD0);
                                     if (someCount >= 3) {
                                         D_8011C238[D_8011C230].unk1 = 0;
                                         for (i2 = 0; i2 < someCount; i2++) {
@@ -3764,7 +3817,10 @@ void func_8002E904(LevelModelSegment *arg0, s32 arg1, s32 arg2) {
 }
 
 // Handles water shadow generation?
-void func_8002EEEC(s32 arg0) {
+/**
+ * Render the visible water surface polygons.
+ */
+void track_render_water_surface(s32 arg0) {
     unk8011C8B8 spA8[8];
     Vec2f sp88[4];
     s32 var_v0;
@@ -3786,7 +3842,7 @@ void func_8002EEEC(s32 arg0) {
     sp88[3].x = gNewShadowObj->trans.x_position + gNewShadowWidth;
     sp88[3].y = gNewShadowObj->trans.z_position - gNewShadowLength;
     // clang-format off
-    temp_v0 = func_800BDC80(
+    temp_v0 = wave_shadow_collision_check(
         arg0, D_8011C3B8, &D_8011C8B8[D_8011D0B8],
         sp88[2].x, sp88[2].y,
         sp88[0].x, sp88[0].y
@@ -3820,7 +3876,7 @@ void func_8002EEEC(s32 arg0) {
                 }
 
                 D_8011D0BC = &D_8011C8B8[D_8011D0B8 + var_s4];
-                temp_v0_3 = func_8002FF6C(3, spA8, 4, sp88);
+                temp_v0_3 = track_check_segment_overlap(3, spA8, 4, sp88);
                 if (temp_v0_3 >= 3) {
                     tempIdx = D_8011C230;
                     D_8011C238[tempIdx].unk1 = 0;
@@ -3858,7 +3914,10 @@ void func_8002EEEC(s32 arg0) {
     D_8011D0B8 += temp_v0;
 }
 
-void func_8002F2AC(void) {
+/**
+ * Update wave vertex positions for animated water.
+ */
+void track_update_wave_positions(void) {
     f32 temp_f12;
     f32 temp_f16;
     unk8011C8B8 *var_v0;
@@ -3882,7 +3941,10 @@ void func_8002F2AC(void) {
     }
 }
 
-void func_8002F440(void) {
+/**
+ * Render the wave geometry display list.
+ */
+void track_render_wave_geometry(void) {
     s32 spAC;
     s32 var_t0;
     Triangle *tri;
@@ -3976,7 +4038,10 @@ void func_8002F440(void) {
 }
 
 // Transition points between different lighting levels, used by certain objects
-f32 func_8002FA64(void) {
+/**
+ * Calculate the wave height at the current position.
+ */
+f32 track_calculate_wave_height(void) {
     f32 var_f2;
     f32 x0, z0, x1, z1, x2, z2;
     s32 temp_t5;
@@ -4033,7 +4098,10 @@ f32 func_8002FA64(void) {
     return (D_8011D0E4 - var_f2) / D_8011D0E4;
 }
 
-s32 func_8002FD74(f32 x0, f32 z0, f32 x1, f32 x2, s32 count, Vec4f *arg5) {
+/**
+ * Test if a point is inside a polygon defined by vertices.
+ */
+s32 track_point_in_polygon(f32 x0, f32 z0, f32 x1, f32 x2, s32 count, Vec4f *arg5) {
     if (count > 0) {
         f32 minX = arg5[0].x;
         f32 maxX = arg5[0].x;
@@ -4066,7 +4134,10 @@ s32 func_8002FD74(f32 x0, f32 z0, f32 x1, f32 x2, s32 count, Vec4f *arg5) {
 // arg1 always has size 8 (that's why spE0 is also of size 8)
 // arg2 is always 4
 // arg3 always has size 4
-s32 func_8002FF6C(s32 arg0, unk8011C8B8 *arg1, s32 arg2, Vec2f *arg3) {
+/**
+ * Check for overlap between segments at a position.
+ */
+s32 track_check_segment_overlap(s32 arg0, unk8011C8B8 *arg1, s32 arg2, Vec2f *arg3) {
     unk8011C8B8 spE0[8];
     f32 temp_f12;
     f32 temp_f14;
@@ -4188,7 +4259,10 @@ s32 func_8002FF6C(s32 arg0, unk8011C8B8 *arg1, s32 arg2, Vec2f *arg3) {
     return var_s2;
 }
 
-void func_800304C8(unk8011C8B8 arg0[3]) {
+/**
+ * Calculate the shadow projection position for an object.
+ */
+void track_calculate_shadow_position(unk8011C8B8 arg0[3]) {
     f32 diff;
     f32 shadowX;
     f32 shadowZ;

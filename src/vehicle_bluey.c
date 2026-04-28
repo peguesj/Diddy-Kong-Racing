@@ -67,8 +67,8 @@ void update_bluey(s32 updateRate, f32 updateRateF, Object *obj, Object_Racer *ra
     animID = obj->animationID;
     animFrame = obj->animFrame;
     tempHeadAngle = racer->headAngle;
-    if (racer->raceFinished == TRUE && func_80023568()) {
-        func_80021400(130);
+    if (racer->raceFinished == TRUE && get_active_animation_count()) {
+        set_animation_pause_state(130);
         racer->raceFinished++;
     }
     tempStartTimer = *startTimer;
@@ -92,7 +92,7 @@ void update_bluey(s32 updateRate, f32 updateRateF, Object *obj, Object_Racer *ra
         }
     }
 
-    func_8004F7F4(updateRate, updateRateF, obj, racer);
+    update_racer_plane_banking(updateRate, updateRateF, obj, racer);
     *startTimer = tempStartTimer;
     racer->lateral_velocity = 0.0f;
     racer->headAngle = tempHeadAngle;

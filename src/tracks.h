@@ -124,8 +124,8 @@ LevelModelSegment *block_get(s32 segmentID);
 LevelModelSegmentBoundingBox *block_boundbox(s32 segmentID);
 void set_collision_mode(s32 mode);
 s32 get_collision_normal(f32 *outX, f32 *outY, f32 *outZ);
-s32 func_8002B9BC(Object *obj, f32 *arg1, Vec3f *arg2, s32 arg3);
-void func_8002C71C(LevelModelSegment *segment);
+s32 track_get_surface_info(Object *obj, f32 *arg1, Vec3f *arg2, s32 arg3);
+void segment_calculate_height_range(LevelModelSegment *segment);
 LevelModel *get_current_level_model(void);
 void get_fog_settings(s32 playerID, s16 *near, s16 *far, u8 *r, u8 *g, u8 *b);
 void reset_fog(s32 playerID);
@@ -142,7 +142,7 @@ void watereffect_render(Object *obj, WaterEffect *effect);
 void shadow_render(Object *obj, ShadowData *shadow);
 s32 block_visible(LevelModelSegmentBoundingBox *bb);
 s32 check_if_in_draw_range(Object *obj);
-void func_8002C954(LevelModelSegment *segment, LevelModelSegmentBoundingBox *bbox, s32 arg2);
+void segment_update_bounding_box(LevelModelSegment *segment, LevelModelSegmentBoundingBox *bbox, s32 arg2);
 void trackbg_render_gradient(void);
 void shadow_update(s32 group, s32 waterGroup, s32 updateRate);
 void obj_loop_fogchanger(Object *obj);
@@ -152,41 +152,41 @@ void render_level_segment(s32 segmentId, s32 nonOpaque);
 void render_scene(Gfx **dList, Mtx **mtx, Vertex **vtx, Triangle **tris, s32 updateRate);
 void set_fog(s32 fogIdx, s16 near, s16 far, u8 red, u8 green, u8 blue);
 void slowly_change_fog(s32 fogIdx, s32 red, s32 green, s32 blue, s32 near, s32 far, s32 switchTimer);
-s32 func_8002FD74(f32 x0, f32 z0, f32 x1, f32 x2, s32 count, Vec4f *arg5);
-void func_80026C14(s16 arg0, s16 arg1, s32 arg2);
-void func_80026E54(s16 arg0, s8 *arg1, f32 arg2, f32 arg3);
-void func_80026070(LevelModelSegmentBoundingBox *arg0, f32 arg1, f32 arg2, f32 arg3);
-void func_80026430(LevelModelSegment *segment, f32 arg1, f32 arg2, f32 arg3);
+s32 track_point_in_polygon(f32 x0, f32 z0, f32 x1, f32 x2, s32 count, Vec4f *arg5);
+void track_add_visible_segment(s16 arg0, s16 arg1, s32 arg2);
+void track_update_segment_visibility(s16 arg0, s8 *arg1, f32 arg2, f32 arg3);
+void segment_bbox_check_point(LevelModelSegmentBoundingBox *arg0, f32 arg1, f32 arg2, f32 arg3);
+void segment_find_surface_height(LevelModelSegment *segment, f32 arg1, f32 arg2, f32 arg3);
 
 void free_track(void);
 void void_check(u8 *segmentIds, s32 numberOfSegments, s32 viewportIndex);
-s32 func_80027568(void);
+s32 track_update_visible_segments(void);
 s32 track_init_collision(LevelModelSegment *);
-s32 func_8002B0F4(s32, f32 xIn, f32 zIn,
+s32 track_find_water_at_point(s32, f32 xIn, f32 zIn,
                   WaterProperties ***); // Definitely not triple pointer, but easiest way to fix warns.
 void ttcam_update(s32);
 void trackbg_render_flashy(void);
 void initialise_player_viewport_vars(s32);
-void func_8002A31C(void);
+void track_update_water_animation(void);
 void update_colour_cycle(LevelHeader_70 *arg0, s32 updateRate);
 void waves_update(s32);
 void waves_render(Gfx **, Mtx **, s32);
-void func_8002DE30(Object *);
+void track_update_object_segment(Object *);
 void shadow_generate(Object *, s32);
-void func_8002E904(LevelModelSegment *, s32, s32 arg2);
-void func_8002EEEC(s32 arg0);
-void func_8002F2AC(void);
-void func_8002F440(void);
-f32 func_8002FA64(void);
+void track_render_segment_water(LevelModelSegment *, s32, s32 arg2);
+void track_render_water_surface(s32 arg0);
+void track_update_wave_positions(void);
+void track_render_wave_geometry(void);
+f32 track_calculate_wave_height(void);
 s32 collision_get_y(s32 levelSegmentIndex, f32 xIn, f32 zIn, f32 *yOut);
 void init_track(u32 geometry, u32 skybox, s32 numberOfPlayers, Vehicle vehicle, u32 entranceId, u32 collectables,
                 u32 arg6);
 void waves_init(LevelModel *, LevelHeader *, s32);
 void void_init(s32);
 void generate_track(s32 modelId);
-void func_800304C8(unk8011C8B8 arg0[3]);
+void track_calculate_shadow_position(unk8011C8B8 arg0[3]);
 s32 void_generate_primitive(f32 *arg0, f32 *arg1, f32 arg2, f32 arg3);
-s32 func_8002FF6C(s32, unk8011C8B8 *, s32, Vec2f *);
-s32 func_800BDC80(s32, unk8011C3B8 *, unk8011C8B8 *, f32, f32, f32, f32);
+s32 track_check_segment_overlap(s32, unk8011C8B8 *, s32, Vec2f *);
+s32 wave_shadow_collision_check(s32, unk8011C3B8 *, unk8011C8B8 *, f32, f32, f32, f32);
 
 #endif

@@ -196,7 +196,7 @@ void load_fonts(void) {
         gDialogueText[i].nextBox = NULL;
     }
 #if REGION == REGION_JP
-    func_800C6464_C7064();
+    font_reset_state();
 #else
     load_font(ASSET_FONTS_FUNFONT);
     load_font(ASSET_FONTS_SMALLFONT);
@@ -360,11 +360,11 @@ UNUSED void draw_dialogue_text_pos_unused(Gfx **displayList, s32 dialogueBoxID, 
     }
 }
 
+#if REGION != REGION_JP
 /**
  * Loops through a string, then draws each character onscreen.
  * Will also draw a fillrect if text backgrounds are enabled.
  */
-#if REGION != REGION_JP
 void render_text_string(Gfx **dList, DialogueBoxBackground *box, char *text, AlignmentFlags alignmentFlags,
                         f32 scisScale) {
     s32 scisOffset;
@@ -516,6 +516,9 @@ void render_text_string(Gfx **dList, DialogueBoxBackground *box, char *text, Ali
     }
 }
 #else
+/**
+ * Loops through a string and draws each character onscreen using the Japanese font system.
+ */
 void render_text_string(Gfx **dList, DialogueBoxBackground *box, char *text, AlignmentFlags alignmentFlags,
                         f32 scisScale) {
     s32 jpTexS;
@@ -648,7 +651,7 @@ void render_text_string(Gfx **dList, DialogueBoxBackground *box, char *text, Ali
             charSpace = D_8012C2A8_EE5E8[fontInUse]->spacing[jpCharValue];
             if ((lrx > 0) && (lry > 0) && (ulx < box->x2) && (uly < box->y2)) {
                 someIndexForJpChar =
-                    func_800C7744_C8344(dList, jpCharValue, &textureS, &textureT, &textureS2, &textureT2);
+                    font_render_character(dList, jpCharValue, &textureS, &textureT, &textureS2, &textureT2);
             } else {
                 someIndexForJpChar = -1;
             }
@@ -668,7 +671,7 @@ void render_text_string(Gfx **dList, DialogueBoxBackground *box, char *text, Ali
                         textureT += (uly * -1) << 3;
                         uly = 0;
                     }
-                    func_800C7804_C8404(someIndexForJpChar);
+                    font_set_style(someIndexForJpChar);
                     gSPTextureRectangle((*dList)++, ulx, uly, lrx, lry, 0, textureS, textureT, 1 << 10, 1 << 10);
                 }
             }
@@ -716,6 +719,9 @@ void render_text_string(Gfx **dList, DialogueBoxBackground *box, char *text, Ali
  * Official Name: fontStringWidth
  */
 #if REGION != REGION_JP
+/**
+ * Calculate the pixel width of a text string for the given font.
+ */
 s32 get_text_width(char *text, s32 x, s32 font) {
     s32 diffX, thisDiffX;
     FontData *fontData;
@@ -757,6 +763,9 @@ s32 get_text_width(char *text, s32 x, s32 font) {
     return diffX - x;
 }
 #else
+/**
+ * Returns the pixel width of a string using the Japanese font spacing tables.
+ */
 s32 get_text_width(char *text, s32 x, s32 font) {
     FontData_JP *currentFont;
     FontJpSpacing *currentFontSpacing;
@@ -1291,6 +1300,9 @@ void render_dialogue_box(Gfx **dList, Mtx **mat, Vertex **verts, s32 dialogueBox
  * character '~' with the number.
  */
 #if REGION != REGION_JP
+/**
+ * Format a string by replacing a placeholder with a number value.
+ */
 void parse_string_with_number(char *input, char *output, s32 number) {
     while (*input) {
         if (*input == '~') { // ~ is equivalent to a %d.
@@ -1306,6 +1318,9 @@ void parse_string_with_number(char *input, char *output, s32 number) {
     *output = '\0'; // null terminator
 }
 #else
+/**
+ * Replaces '~' placeholders and Japanese number markers in a string with the given number.
+ */
 void parse_string_with_number(char *input, char *output, s32 number) {
     char currentChar;
 
@@ -1327,7 +1342,10 @@ void parse_string_with_number(char *input, char *output, s32 number) {
     *output = '\0'; // null terminator
 }
 
-void func_800C6464_C7064(void) {
+/**
+ * Reset font rendering state to defaults.
+ */
+void font_reset_state(void) {
     s32 i;
     s32 charIndex;
     u8 **var_s3;
@@ -1369,16 +1387,19 @@ void func_800C6464_C7064(void) {
     fontInUse = 0;
 }
 
-void func_800C663C_C723C(void) {
+/**
+ * Initialize font kerning table data.
+ */
+void font_init_kerning(void) {
     s32 i;
     s32 var_v0;
 
-    func_800C67F4_C73F4();
+    font_flush_buffer();
     D_8012C2D0_EE610 = mempool_alloc_safe(0x6C00, COLOUR_TAG_RED);
     D_8012C2D4_EE614 = mempool_alloc_safe(0x400, COLOUR_TAG_RED);
     D_8012C2D8_EE618 = mempool_alloc_safe(0x9000, COLOUR_TAG_RED);
     if (D_8012C2D0_EE610 == NULL || D_8012C2D4_EE614 == NULL || D_8012C2D8_EE618 == NULL) {
-        func_800C67F4_C73F4();
+        font_flush_buffer();
         return;
     }
     var_v0 = 0;
@@ -1393,7 +1414,10 @@ void func_800C663C_C723C(void) {
     }
 }
 
-void func_800C67F4_C73F4(void) {
+/**
+ * Flush the font character rendering buffer.
+ */
+void font_flush_buffer(void) {
     if (D_8012C2D0_EE610 != NULL) {
         mempool_free(D_8012C2D0_EE610);
         D_8012C2D0_EE610 = NULL;
@@ -1408,7 +1432,10 @@ void func_800C67F4_C73F4(void) {
     }
 }
 
-void func_800C6870_C7470(void) {
+/**
+ * Begin a batch of font character renders.
+ */
+void font_begin_batch(void) {
     if (D_8012C2C0_EE600 == D_8012C2CC_EE60C && D_8012C2D8_EE618 != NULL) {
         D_8012C2BC_EE5FC = D_8012C2D4_EE614;
         D_8012C2C0_EE600 = D_8012C2D8_EE618;
@@ -1418,7 +1445,10 @@ void func_800C6870_C7470(void) {
     }
 }
 
-s32 func_800C68CC_C74CC(u16 arg0) {
+/**
+ * Get the pixel width of a character glyph.
+ */
+s32 font_get_char_width(u16 arg0) {
     s32 assetSize;
     s32 i;
     s32 var_t0;
@@ -1441,7 +1471,7 @@ s32 func_800C68CC_C74CC(u16 arg0) {
             }
         }
         if (curIndex < 0) {
-            func_800C6870_C7470();
+            font_begin_batch();
         }
     } while ((D_8012C2C0_EE600 != D_8012C2CC_EE60C) && (curIndex < 0));
 
@@ -1462,7 +1492,7 @@ s32 func_800C68CC_C74CC(u16 arg0) {
                 }
             }
             if (curIndex < 0) {
-                func_800C6870_C7470();
+                font_begin_batch();
             }
         } while ((D_8012C2C0_EE600 != D_8012C2CC_EE60C) && (curIndex < 0));
 
@@ -1595,11 +1625,14 @@ void fontCreateDisplayList(Gfx *dList, Asset46 *asset, s32 width, s32 height) {
     gSPEndDisplayList(dList++);
 }
 
-s32 func_800C7744_C8344(Gfx **dList, u16 charIndex, s32 *outLeft, s32 *outTop, s32 *outRight, s32 *outBottom) {
+/**
+ * Render a single character glyph to the display list.
+ */
+s32 font_render_character(Gfx **dList, u16 charIndex, s32 *outLeft, s32 *outTop, s32 *outRight, s32 *outBottom) {
     s32 index;
     JpCharHeader *jpChar;
 
-    index = func_800C68CC_C74CC(charIndex);
+    index = font_get_char_width(charIndex);
     if (index >= 0) {
         gSPDisplayList((*dList)++, (*D_8012C2BC_EE5FC)[index].dList);
         jpChar = D_8012C2C0_EE600[index];
@@ -1611,7 +1644,10 @@ s32 func_800C7744_C8344(Gfx **dList, u16 charIndex, s32 *outLeft, s32 *outTop, s
     return index;
 }
 
-void func_800C7804_C8404(s32 arg0) {
+/**
+ * Set the current font rendering style.
+ */
+void font_set_style(s32 arg0) {
     s32 i;
 
     for (i = 0; i < (*D_8012C2BC_EE5FC)[arg0].unk1; i++) {
@@ -1648,7 +1684,10 @@ void fontConvertString(char *inString, char *outString) {
     *outString = '\0';
 }
 
-void func_800C78E0_C84E0(void) {
+/**
+ * End the current font character batch.
+ */
+void font_end_batch(void) {
     s32 i;
 
     D_8012C2BC_EE5FC = D_8012C2C8_EE608;
@@ -1659,7 +1698,7 @@ void func_800C78E0_C84E0(void) {
                 (*D_8012C2BC_EE5FC)[i].unk0--;
             }
         }
-        func_800C6870_C7470();
+        font_begin_batch();
     } while (D_8012C2C0_EE600 != D_8012C2CC_EE60C);
 }
 

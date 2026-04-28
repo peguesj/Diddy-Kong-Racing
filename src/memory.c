@@ -680,7 +680,7 @@ UNUSED void mempool_print_tags_usb(void) {
 
 /**
  * Draws the counts for each color tag in the main pool.
- * See: https://tcrf.net/Diddy_Kong_Racing#Current_Colors
+ * See: https:tcrf.net-Diddy_Kong_Racing#Current_Colors
  */
 UNUSED void mempool_print_tags_screen(void) {
     set_render_printf_background_colour(0, 0, 0, 128);

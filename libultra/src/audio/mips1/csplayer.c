@@ -56,7 +56,7 @@ static void             __CSPHandleMIDIMsg(ALCSPlayer_Custom *seqp, ALEvent *eve
 static void             __CSPHandleMetaMsg(ALCSPlayer *seqp, ALEvent *event);
 static void             __CSPRepostEvent(ALEventQueue *evtq, ALEventListItem *item);
 static void		__setUsptFromTempo(ALCSPlayer *seqp, f32 tempo);		/* sct 1/8/96 */
-       void func_80065A80(ALSynth *arg0, struct PVoice_s *arg1, s16 arg2);
+       void synth_move_voice_aux_bus(ALSynth *arg0, struct PVoice_s *arg1, s16 arg2);
 
 
 /*
@@ -524,7 +524,7 @@ void __CSPHandleMIDIMsg(ALCSPlayer_Custom *seqp, ALEvent *event)
                 voice = &vstate->voice;
 
                 if (alSynAllocVoice(seqp->drvr, voice, &config))
-                    func_80065A80(seqp->drvr, voice->pvoice, 0);
+                    synth_move_voice_aux_bus(seqp->drvr, voice->pvoice, 0);
                 
                 /*
                  * set up the voice state structure

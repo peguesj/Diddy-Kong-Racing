@@ -315,7 +315,10 @@ s32 fb_update(s32 mesg) {
     return tempUpdateRate;
 }
 
-void func_8007AB24(u8 arg0) {
+/**
+ * Sets the maximum number of VI retraces the video system will wait per frame update.
+ */
+void set_video_max_update_rate(u8 arg0) {
     D_801262E4 = arg0;
 }
 

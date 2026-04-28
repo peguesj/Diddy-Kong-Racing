@@ -385,6 +385,9 @@ void free_model_data(ObjectModel *mdl) {
     mempool_free(mdl);
 }
 
+/**
+ * Initialises collision facet data for an object model by computing face normals and plane distances.
+ */
 void model_init_collision(ObjectModel *model) {
     s32 facesOffset;
     s32 verticesOffset;
@@ -486,7 +489,7 @@ void model_init_collision(ObjectModel *model) {
 
     model->collisionFacetCount = s4;
 
-    func_80060910(model);
+    model_init_collision_facets(model);
 
     s3 = 0;
     for (i = 0; i < model->numberOfBatches; i++) {
@@ -556,7 +559,10 @@ void model_init_collision(ObjectModel *model) {
     }
 }
 
-void func_80060910(ObjectModel *mdl) {
+/**
+ * Build the collision facet adjacency table by finding neighbouring triangles that share each edge.
+ */
+void model_init_collision_facets(ObjectModel *mdl) {
     s32 count;
     s32 i;
     s32 vertOffset;
@@ -592,7 +598,7 @@ void func_80060910(ObjectModel *mdl) {
                 vertIndex0 = mdl->triangles[triIndex].verticesArray[vertIndex + 1] + vertOffset;
                 vertIndex1 = mdl->triangles[triIndex].verticesArray[nextVertIndex + 1] + vertOffset;
 
-                result = func_80060AC8(mdl, triIndex, vertIndex0, vertIndex1, &sp5C, &sp60);
+                result = model_find_adjacent_triangle(mdl, triIndex, vertIndex0, vertIndex1, &sp5C, &sp60);
                 if (result != -1) {
                     mdl->collisionFacets[count].edgeBisectorPlane[vertIndex] = result;
                 } else {
@@ -603,7 +609,10 @@ void func_80060910(ObjectModel *mdl) {
     }
 }
 
-s32 func_80060AC8(ObjectModel *mdl, s32 arg1, s32 arg2, s32 arg3, s32 *outBatchIndex, s32 *outVertexIndex) {
+/**
+ * Search all collision-enabled triangles for one that shares the given edge, returning its facet index or -1 if none found.
+ */
+s32 model_find_adjacent_triangle(ObjectModel *mdl, s32 arg1, s32 arg2, s32 arg3, s32 *outBatchIndex, s32 *outVertexIndex) {
     s32 i;
     s32 endTri;
     s32 count;
@@ -634,7 +643,7 @@ s32 func_80060AC8(ObjectModel *mdl, s32 arg1, s32 arg2, s32 arg3, s32 *outBatchI
 
                     vertIndex0 = mdl->triangles[triIndex].verticesArray[vertIndex + 1] + vertOffset;
                     vertIndex1 = mdl->triangles[triIndex].verticesArray[nextVertIndex + 1] + vertOffset;
-                    if (func_80060C58(mdl->vertices, arg2, arg3, vertIndex0, vertIndex1) != 0) {
+                    if (model_check_shared_edge(mdl->vertices, arg2, arg3, vertIndex0, vertIndex1) != 0) {
                         *outVertexIndex = vertIndex;
                         *outBatchIndex = i;
                         return count;
@@ -647,7 +656,10 @@ s32 func_80060AC8(ObjectModel *mdl, s32 arg1, s32 arg2, s32 arg3, s32 *outBatchI
     return -1;
 }
 
-s32 func_80060C58(Vertex *vertices, s32 i1, s32 i2, s32 i3, s32 i4) {
+/**
+ * Check whether two edges share the same pair of vertex positions, either by index equality or by proximity within a tolerance of 4 units.
+ */
+s32 model_check_shared_edge(Vertex *vertices, s32 i1, s32 i2, s32 i3, s32 i4) {
     Vertex *a;
     Vertex *b;
     Vertex *c;
@@ -679,7 +691,9 @@ s32 func_80060C58(Vertex *vertices, s32 i1, s32 i2, s32 i3, s32 i4) {
 #undef NEARBY
 }
 
-// Returns 0 if successful, or 1 if an error occured.
+/**
+ * Computes averaged per-vertex normals for an object model used in dynamic lighting and environment mapping.
+ */
 s32 model_init_normals(ObjectModel *model) {
     Vertex *vertices;
     Triangle *triangles;
@@ -949,7 +963,10 @@ s32 model_anim_init(ObjectModel *model, s32 modelID) {
     return 0;
 }
 
-void func_80061C0C(Object *obj) {
+/**
+ * Clamp the object's model index, animation ID, and animation frame to their valid ranges, resetting the frame on overflow.
+ */
+void object_clamp_anim_bounds(Object *obj) {
     ObjectModel *mdl;
     ModelInstance *modInst;
     s32 var_v1;

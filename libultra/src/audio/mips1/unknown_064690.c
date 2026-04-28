@@ -1,6 +1,9 @@
 #include <libaudio.h>
 
-void func_80063A90(ALCSPlayer *seqp, u8 chan) {
+/**
+ * Move a synthesizer voice to a different auxiliary bus channel.
+ */
+void audio_set_channel_priority(ALCSPlayer *seqp, u8 chan) {
     ALEvent evt;
 
     evt.type = AL_SEQP_MIDI_EVT;

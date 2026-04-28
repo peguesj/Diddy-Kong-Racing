@@ -361,7 +361,7 @@ void main_game_loop(void) {
         sLogicUpdateRate = tempLogicUpdateRateMax;
     }
 #if REGION == REGION_JP
-    func_800C78E0_C84E0();
+    font_end_batch();
 #endif
 }
 
@@ -480,7 +480,7 @@ void mode_game(s32 updateRate) {
                 break;
             case POSTRACE_OPT_1:
                 gPostRaceViewPort = FALSE;
-                func_8006D8F0(-1);
+                thread3_idle_callback(-1);
                 break;
             case POSTRACE_OPT_4:
                 level_properties_reset();
@@ -530,7 +530,7 @@ void mode_game(s32 updateRate) {
             case PAUSE_RESET:
                 sound_clear_delayed();
                 reset_delayed_text();
-                if (func_80023568() != 0 && is_in_two_player_adventure()) {
+                if (get_active_animation_count() != 0 && is_in_two_player_adventure()) {
                     swap_lead_player();
                 }
                 buttonHeldInputs |= (L_TRIG | Z_TRIG);
@@ -538,7 +538,7 @@ void mode_game(s32 updateRate) {
             case PAUSE_QUIT_LOBBY:
                 sound_clear_delayed();
                 reset_delayed_text();
-                if (func_80023568() != 0 && is_in_two_player_adventure()) {
+                if (get_active_animation_count() != 0 && is_in_two_player_adventure()) {
                     swap_lead_player();
                 }
                 buttonHeldInputs |= L_TRIG;
@@ -574,7 +574,7 @@ void mode_game(s32 updateRate) {
     hud_render_general(&gCurrDisplayList, &gGameCurrMatrix, &gGameCurrVertexList, updateRate);
     divider_clear_coverage(&gCurrDisplayList);
     if (gFutureFunLandLevelTarget) {
-        if (func_800214C4() != 0) {
+        if (get_cutscene_active() != 0) {
             gPlayableMapId = ASSET_LEVEL_FUTUREFUNLANDHUB;
             D_801234F8 = TRUE;
             gGameCurrentEntrance = 0;
@@ -643,10 +643,10 @@ void mode_game(s32 updateRate) {
             }
         }
     } else {
-        sp3C = func_8006C300();
+        sp3C = get_game_paused_state();
         if (level_properties_get()) {
             if (gLevelLoadTimer == 0) {
-                i = func_800214C4();
+                i = get_cutscene_active();
                 if ((i != 0) || ((buttonPressedInputs & A_BUTTON) && (sp3C != 0))) {
                     if (sp3C != 0) {
                         music_change_on();
@@ -770,7 +770,10 @@ void race_postrace_type(s32 finishState) {
     gPostRaceViewPort = finishState + 1;
 }
 
-void func_8006D8F0(UNUSED s32 arg0) {
+/**
+ * Callback invoked when thread 3 enters idle state.
+ */
+void thread3_idle_callback(UNUSED s32 arg0) {
     s32 temp;
     if (gGameMode != GAMEMODE_UNUSED_4) {
         gPlayableMapId = gLevelSettings[0];
@@ -787,7 +790,10 @@ void func_8006D8F0(UNUSED s32 arg0) {
     }
 }
 
-void func_8006D968(s8 *arg0) {
+/**
+ * Process an incoming message on thread 3.
+ */
+void thread3_process_message(s8 *arg0) {
     // Is arg0 LevelObjectEntry_Exit?
     s32 i;
     if (gGameMode != GAMEMODE_UNUSED_4) {
@@ -1154,7 +1160,7 @@ void init_racer_headers(void) {
 }
 
 /**
- * Depending on flags, clear fastest lap times and/or overall course times.
+ * Depending on flags, clear fastest lap times and-or overall course times.
  */
 void clear_lap_records(Settings *settings, s32 flags) {
     s32 i, j;
@@ -1480,7 +1486,10 @@ void level_transition_begin(s32 type) {
     }
 }
 
-UNUSED void func_8006F20C(void) {
+/**
+ * Unused debug function for thread 3.
+ */
+UNUSED void unused_thread3_debug(void) {
     if (gLevelLoadTimer == 0) {
         transition_begin(&gLevelFadeOutTransition);
         gLevelLoadTimer = 40;

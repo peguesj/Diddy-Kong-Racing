@@ -30,7 +30,7 @@ const char D_800E4B5C[] = "Don't worry - game should cope OK\n";
 const char D_800E4B80[] = "WARNING: Attempt to stop NULL sound aborted\n";
 
 static void sndp_remove_events(ALEventQueue *, ALSoundState *, u16);
-void func_80065A80(ALSynth *arg0, struct PVoice_s *arg1, s16 arg2);
+void synth_move_voice_aux_bus(ALSynth *arg0, struct PVoice_s *arg1, s16 arg2);
 
 /**
  * Sets the global volume level for all sounds.
@@ -215,7 +215,7 @@ void sndp_handle_event(SoundPlayer *sndp, ALSndpEvent *event) {
                     isVoiceAllocated = alSynAllocVoice(sndp->drvr, &soundState->voice, &config);
                 }
                 if (isVoiceAllocated) {
-                    func_80065A80(sndp->drvr, soundState->voice.pvoice, 1);
+                    synth_move_voice_aux_bus(sndp->drvr, soundState->voice.pvoice, 1);
                 }
 
                 voice = &soundState->voice;

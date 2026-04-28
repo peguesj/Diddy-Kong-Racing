@@ -585,6 +585,9 @@ void transition_render_barndoor_vert(Gfx **dList, UNUSED Mtx **mtx, UNUSED Verte
     rendermode_reset(dList);
 }
 
+/**
+ * Allocates and initialises vertex and triangle buffers for the circular fade transition effect.
+ */
 void transition_init_circle(FadeTransition *transition) {
     s32 i;
     s32 j;
@@ -689,6 +692,9 @@ void transition_init_circle(FadeTransition *transition) {
     sTransitionStatus = TRANSITION_ACTIVE;
 }
 
+/**
+ * Updates the circular fade transition each frame by interpolating the inner and outer radii.
+ */
 void transition_update_circle(s32 updateRate) {
     f32 temp_f20;
     f32 temp_f2;

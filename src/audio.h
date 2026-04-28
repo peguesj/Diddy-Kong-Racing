@@ -101,7 +101,7 @@ ALCSPlayer *sound_seqplayer_init(s32 maxVoices, s32 maxEvents);
 void music_sequence_start(u8 seqID, ALCSPlayer *seqPlayer);
 void music_sequence_stop(ALCSPlayer *seqPlayer);
 void sound_reverb_set(u8 setting);
-void func_80063A90(ALCSPlayer *seqp, u8 channel);
+void audio_set_channel_priority(ALCSPlayer *seqp, u8 channel);
 void sound_volume_set_relative(u16 soundID, SoundHandle soundHandle, u8 volume);
 void music_sequence_init(ALCSPlayer *seqp, void *sequence, u8 *seqID, ALCSeq *seq);
 void sound_play(u16 soundID, SoundHandle* handlePtr);

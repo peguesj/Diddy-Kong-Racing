@@ -208,18 +208,31 @@ void mtxf_to_mtx(MtxF *mf, Mtx *m) {
 GLOBAL_ASM("asm/math_util/mtxf_to_mtx.s")
 #endif
 
-/* Official Name: mathSeed */
+/**
+ * Sets the global random number generator seed value.
+ * Official Name: mathSeed
+ */
 void set_rng_seed(s32 num) {
     gCurrentRNGSeed = num;
 }
 
+/**
+ * Saves the current RNG seed so it can be restored later.
+ */
 void save_rng_seed(void) {
     gPrevRNGSeed = gCurrentRNGSeed;
 }
+
+/**
+ * Restores the RNG seed from the previously saved value.
+ */
 void load_rng_seed(void) {
     gCurrentRNGSeed = gPrevRNGSeed;
 }
 
+/**
+ * Returns the current random number generator seed.
+ */
 s32 get_rng_seed(void) {
     return gCurrentRNGSeed;
 }
@@ -457,7 +470,7 @@ void mtxf_from_inverse_transform(MtxF *mtx, ObjectTransform *trans) {
 GLOBAL_ASM("asm/math_util/mtxf_from_inverse_transform.s")
 #endif
 
-GLOBAL_ASM("asm/math_util/func_80070058.s")
+GLOBAL_ASM("asm/math_util/mtxf_from_euler_angles.s")
 
 #ifdef NON_MATCHING
 /**
@@ -732,7 +745,9 @@ GLOBAL_ASM("asm/math_util/mtxf_from_scale.s")
 #endif
 
 #ifdef NON_MATCHING
-// Blatantly stolen from SM64 :)
+/**
+ * Looks up an arctangent value from a precomputed table given a y/x ratio.
+ */
 static u16 atan2_lookup(f32 y, f32 x) {
     u16 ret;
 
@@ -744,6 +759,9 @@ static u16 atan2_lookup(f32 y, f32 x) {
     return ret;
 }
 
+/**
+ * Computes the arctangent of two deltas and returns the angle as a 16-bit value.
+ */
 s32 atan2s(s32 xDelta, s32 zDelta) {
     u16 ret;
 
@@ -790,6 +808,9 @@ GLOBAL_ASM("asm/math_util/atan2s.s")
 #endif
 
 #ifdef NON_MATCHING
+/**
+ * Computes the arctangent of two floating-point values by scaling them to integers.
+ */
 u16 arctan2_f(f32 y, f32 x) {
     return atan2s((s32) (y * 255.0f), (s32) (x * 255.0f));
 }
@@ -810,7 +831,9 @@ UNUSED s32 fix32_sqrt(s32 x) {
 GLOBAL_ASM("asm/math_util/fix32_sqrt.s")
 #endif
 
-// Untested
+/**
+ * Computes an integer square root via floating-point conversion with imprecise rounding.
+ */
 #ifdef NON_EQUIVALENT
 UNUSED s32 bad_int_sqrt(s32 arg0) {
     return (s32) (sqrtf((f32) arg0 / 65536.0f) * 65536.0f);
@@ -824,7 +847,9 @@ GLOBAL_ASM("asm/math_util/coss_f.s")
 GLOBAL_ASM("asm/math_util/coss.s")
 GLOBAL_ASM("asm/math_util/sins_2.s")
 
-// Untested
+/**
+ * Calculates per-vertex dynamic lighting for a level model segment using dot-product shading.
+ */
 #ifdef NON_EQUIVALENT
 UNUSED s32 calc_dyn_lighting_for_level_segment(LevelModelSegment *segment, s32 *vec3_ints) {
     s32 dotProduct;
@@ -901,6 +926,9 @@ GLOBAL_ASM("asm/math_util/area_triangle_2d.s")
 GLOBAL_ASM("asm/math_util/set_breakpoint.s")
 
 #ifdef NON_MATCHING
+/**
+ * Copies memory from src to dst using doubleword-aligned DMA, with size derived from the end address.
+ */
 void dmacopy_doubleword(void *src, void *dst, u32 end) {
     s32 size = end - (u32) dst;
     memcpy(dst, src, size);

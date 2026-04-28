@@ -77,8 +77,8 @@ void update_smokey(s32 updateRate, f32 updateRateF, Object *obj, Object_Racer *r
     if (racer->velocity < 0.3 && -0.3 < racer->velocity) {
         *stickMag = 0;
     }
-    if (racer->raceFinished == TRUE && func_80023568()) {
-        func_80021400(130);
+    if (racer->raceFinished == TRUE && get_active_animation_count()) {
+        set_animation_pause_state(130);
         racer->raceFinished++;
     }
     headAngleRange = *startTimer;
@@ -100,7 +100,7 @@ void update_smokey(s32 updateRate, f32 updateRateF, Object *obj, Object_Racer *r
         }
     }
     racer->vehicleID = VEHICLE_SMOKEY;
-    func_80049794(updateRate, updateRateF, obj, racer);
+    update_racer_hovercraft_physics(updateRate, updateRateF, obj, racer);
     racer->vehicleID = racer->vehicleIDPrev;
     *startTimer = headAngleRange;
     obj->particleEmittersEnabled = OBJ_EMIT_NONE;
@@ -234,7 +234,7 @@ void update_smokey(s32 updateRate, f32 updateRateF, Object *obj, Object_Racer *r
                                            obj->trans.z_position, AUDIO_POINT_FLAG_ONE_TIME_TRIGGER, NULL);
         }
     }
-    if (racer->vehicleIDPrev == VEHICLE_SMOKEY && racer->playerIndex == PLAYER_COMPUTER && func_80023568()) {
+    if (racer->vehicleIDPrev == VEHICLE_SMOKEY && racer->playerIndex == PLAYER_COMPUTER && get_active_animation_count()) {
         spawn_boss_hazard(obj, racer, 100.0f, ASSET_OBJECT_ID_FIREBALL, SOUND_VOICE_TRICKY_HM);
     }
     obj_spawn_particle(obj, updateRate);

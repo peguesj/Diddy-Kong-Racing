@@ -1520,7 +1520,7 @@ END(mtxf_from_inverse_transform)
  *   fa1 = cosRoll * cosYaw
  *   ft4 = sinRoll * sinYaw
  */
-LEAF(func_80070058)
+LEAF(mtxf_from_euler_angles)
     addiu      sp, sp, -0x8
     sd         ra, 0x0(sp)
 
@@ -1589,7 +1589,7 @@ LEAF(func_80070058)
     ld         ra, 0x0(sp)
     addiu      sp, sp, 0x8
     jr         ra
-END(func_80070058)
+END(mtxf_from_euler_angles)
 
 /**
  * Builds a billboard matrix for a sprite that always faces the camera.

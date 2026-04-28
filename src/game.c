@@ -134,7 +134,10 @@ void level_global_init(void) {
 #endif
 }
 
-UNUSED s16 func_8006ABB4(s32 levelID) {
+/**
+ * Get the world index for a given level ID.
+ */
+UNUSED s16 get_level_world_index(s32 levelID) {
     if (levelID < 0) {
         return 0xE10;
     }
@@ -458,13 +461,13 @@ void level_load(s32 levelId, s32 numberOfPlayers, s32 entranceId, Vehicle vehicl
     }
     mempool_free(gTempAssetTable);
     aitable_init((s8 *) &gCurrentLevelHeader->AILevelTable);
-    func_8000CBC0();
+    object_slots_clear();
     gMapId = levelId;
     for (var_s0 = 0; var_s0 < 7; var_s0++) {
         if ((s32) gCurrentLevelHeader->unk74[var_s0] != -1) {
             gCurrentLevelHeader->unk74[var_s0] =
                 (LevelHeader_70 *) get_misc_asset((s32) gCurrentLevelHeader->unk74[var_s0]);
-            func_8007F1E8((LevelHeader_70 *) gCurrentLevelHeader->unk74[var_s0]);
+            reset_colour_cycle((LevelHeader_70 *) gCurrentLevelHeader->unk74[var_s0]);
         }
     }
 
@@ -591,7 +594,7 @@ void level_load(s32 levelId, s32 numberOfPlayers, s32 entranceId, Vehicle vehicl
     bgdraw_primcolour(gCurrentLevelHeader->bgColorRed, gCurrentLevelHeader->bgColorGreen,
                       gCurrentLevelHeader->bgColorBlue);
     video_delta_reset();
-    func_8007AB24(gCurrentLevelHeader->unk4[numberOfPlayers]);
+    set_video_max_update_rate(gCurrentLevelHeader->unk4[numberOfPlayers]);
 }
 
 /**
@@ -819,7 +822,10 @@ s16 level_properties_get(void) {
     return gLevelPropertyStackPos;
 }
 
-s32 func_8006C300(void) {
+/**
+ * Return whether the game is currently paused.
+ */
+s32 get_game_paused_state(void) {
     if (D_800DD330 >= 2) {
         D_800DD330 = 1;
         return 0;

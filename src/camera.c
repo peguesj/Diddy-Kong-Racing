@@ -158,6 +158,9 @@ void cam_init(void) {
     gCurCamFOV = CAMERA_DEFAULT_FOV;
 }
 
+/**
+ * Sets the zoom level for the specified camera.
+ */
 void cam_set_zoom(s32 cameraID, s32 zoomLevel) {
     if (cameraID >= 0 && cameraID <= 3) {
         gCameraZoomLevels[cameraID] = zoomLevel;
@@ -463,6 +466,9 @@ void copy_viewports_to_stack(void) {
     }
 }
 
+/**
+ * Enables the user-controlled viewport by setting the appropriate background or visibility flag.
+ */
 void camEnableUserView(s32 viewPortIndex, s32 arg1) {
     if (arg1) {
         gScreenViewports[viewPortIndex].flags |= VIEWPORT_EXTRA_BG;
@@ -472,6 +478,9 @@ void camEnableUserView(s32 viewPortIndex, s32 arg1) {
     gScreenViewports[viewPortIndex].flags &= ~VIEWPORT_UNK_04;
 }
 
+/**
+ * Disables the user-controlled viewport by clearing the appropriate background or visibility flag.
+ */
 void camDisableUserView(s32 viewPortIndex, s32 arg1) {
     if (arg1) {
         gScreenViewports[viewPortIndex].flags &= ~VIEWPORT_EXTRA_BG;
@@ -618,6 +627,9 @@ UNUSED void copy_framebuffer_size_to_coords(s32 *x1, s32 *y1, s32 *x2, s32 *y2) 
     *y2 = GET_VIDEO_HEIGHT(widthAndHeight);
 }
 
+/**
+ * Main viewport rendering loop that configures scissor regions and draws each active viewport.
+ */
 void viewport_main(Gfx **dlist, Mtx **mats) {
     u32 y;
     u32 x;
@@ -654,7 +666,7 @@ void viewport_main(Gfx **dlist, Mtx **mats) {
         viewport_rsp_set(dlist, 0, 0, 0, 0);
         gActiveCameraID = tempCameraID;
         if (mats != NULL) {
-            func_80067D3C(dlist, mats);
+            camera_apply_view_projection(dlist, mats);
         }
         gActiveCameraID = originalCameraID;
         return;
@@ -773,7 +785,7 @@ void viewport_main(Gfx **dlist, Mtx **mats) {
     }
     viewport_rsp_set(dlist, sp54_width, sp58_height, posX, posY);
     if (mats != NULL) {
-        func_80067D3C(dlist, mats);
+        camera_apply_view_projection(dlist, mats);
     }
     gActiveCameraID = originalCameraID;
 }
@@ -871,8 +883,10 @@ void viewport_scissor(Gfx **dList) {
     }
 }
 
-// Official Name: camGetPlayerProjMtx / camSetProjMtx - ??
-void func_80067D3C(Gfx **dList, UNUSED Mtx **mtx) {
+/**
+ * Builds the view and projection matrices from the active camera and loads them into the display list.
+ */
+void camera_apply_view_projection(Gfx **dList, UNUSED Mtx **mtx) {
     s32 originalCamID;
 
     gSPPerspNormalize((*dList)++, perspNorm);

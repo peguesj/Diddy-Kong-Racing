@@ -261,7 +261,7 @@ static void __scMain(void *arg)
               __scHandleRDP(sc);
               break;
           case (UNK_MSG):
-                func_80079760(sc);
+                sched_dispatch_tasks(sc);
                 break;
 
           case (PRE_NMI_MSG):
@@ -283,7 +283,10 @@ static void __scMain(void *arg)
     }
 }
 
-void func_80079760(OSSched *sc) {
+/**
+ * Dispatch queued RSP and RDP tasks from the scheduler, yielding if audio is pending.
+ */
+void sched_dispatch_tasks(OSSched *sc) {
     s32 state;
     OSScTask *sp = 0;
     OSScTask *dp = 0;
@@ -389,7 +392,7 @@ void __scHandleRetrace(OSSched *sc) {
             if (gRetraceCounter64 % 2 == 0) {
                 osSendMesg(client->msgQ, sc, OS_MESG_NOBLOCK);
                 if (sc->audioListHead) {
-                    func_80079760(sc);
+                    sched_dispatch_tasks(sc);
                 }
             }
         } else if (client->id == OS_SC_ID_VIDEO) {

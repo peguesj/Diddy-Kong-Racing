@@ -65,7 +65,10 @@ u8 *gzip_inflate(u8 *compressedInput, u8 *decompressedOutput) {
     return decompressedOutput;
 }
 
-/* Official name: huft_build */
+/**
+ * Builds a set of Huffman decoding tables from an array of code bit lengths.
+ * Official name: huft_build
+ */
 void gzip_huft_build(u32 *b, u32 n, u32 s, u16 *d, u16 *e, huft **t, s32 *m) {
     u32 a;                   /* counter for codes of length k */
     u32 c[BMAX + 1];         /* bit length count table */

@@ -239,7 +239,7 @@ s8 gMinimapXlu;
 
 /**
  * gRaceStartShowHudStep counts up from 0->5 on race start, and is used to
- * coordinate when certain hud actions & audio clips play/happen:
+ * coordinate when certain hud actions & audio clips play-happen:
  *   - set to 0 on loading of new race
  *   - 0->1 when camera shutter open animation occurs
  *   - 1->2 when hud slides into screen with "whoosh" sound
@@ -372,7 +372,7 @@ void hud_init(UNUSED s32 viewportCount) {
     gHudBalloonSoundMask = NULL;
     gMinimapXlu = 0;
     D_80127194 = (LevelHeader_70 *) get_misc_asset(ASSET_MISC_58);
-    func_8007F1E8(D_80127194);
+    reset_colour_cycle(D_80127194);
     sndp_set_group_volume(0, AL_SNDP_GROUP_VOLUME_MAX);
     sndp_set_group_volume(2, AL_SNDP_GROUP_VOLUME_MAX);
     for (i = 0; i < 2; i++) {
@@ -1071,9 +1071,8 @@ void hud_course_arrows(Object_Racer *racer, s32 updateRate) {
     }
 }
 
-/*
- * Renders the HUD for the Smokey Castle challenge.
- * Shows each players portrait and their aquired treasure.
+/**
+ * Renders the HUD for the Smokey Castle challenge, showing each player's portrait and acquired treasure.
  */
 void hud_main_treasure(s32 countdown, Object *obj, s32 updateRate) {
     Object_Racer *racer;
@@ -1205,7 +1204,7 @@ void hud_draw_eggs(Object *racerObj, s32 updateRate) {
 
 /**
  * Render the character portrait and the number of eggs they have secured.
- * Skip the portrait in 3/4 player, unless player 4 is AI controlled.
+ * Skip the portrait in 3 or 4 player, unless player 4 is AI controlled.
  */
 void hud_eggs_portrait(Object_Racer *racer, UNUSED s32 updateRate) {
     s32 i;
@@ -1362,7 +1361,7 @@ void hud_battle_portraits(Object *racerObj, s32 updateRate) {
 
 /**
  * Render the portrait and life counter in the battle mode.
- * In 3/4 player, skips the portrait for all human players. Player 4 has a portrait if it's AI.
+ * In 3 or 4 player, skips the portrait for all human players. Player 4 has a portrait if it's AI.
  */
 void hud_lives_render(Object_Racer *racer, UNUSED s32 updateRate) {
     gCurrentHud->entry[HUD_CHALLENGE_PORTRAIT].spriteID = racer->characterId + HUD_SPRITE_PORTRAIT;
@@ -1458,6 +1457,9 @@ void hud_main_hub(Object *obj, s32 updateRate) {
     }
 }
 
+/**
+ * Renders the time trial HUD including the stopwatch object, lap times, and ghost replay controls.
+ */
 void hud_main_time_trial(s32 arg0, Object *playerRacerObj, s32 updateRate) {
     s32 i;
     s32 spB8;
@@ -1770,6 +1772,9 @@ void hud_main_time_trial(s32 arg0, Object *playerRacerObj, s32 updateRate) {
     cam_set_sprite_anim_mode(SPRITE_ANIM_NORMALIZED);
 }
 
+/**
+ * Updates the stopwatch face model's texture batch to display the correct animation frame.
+ */
 void hud_stopwatch_face(u8 arg0, u8 arg1, u8 animID, u8 arg3, u8 arg4) {
     s32 numberOfBatches;
     s32 i;
@@ -1909,7 +1914,7 @@ void hud_race_start(s32 countdown, s32 updateRate) {
                 }
             }
             // Make engine revving sounds of random pitches while the race is waiting to begin.
-            if (gRaceStartSoundMask == NULL && func_80023568() == 0) {
+            if (gRaceStartSoundMask == NULL && get_active_animation_count() == 0) {
                 f32 frequency;
                 UNUSED s32 pad;
                 Object **racerGroup;
@@ -2176,7 +2181,10 @@ void hud_race_finish_1player(Object_Racer *racer, s32 updateRate) {
     }
 }
 
-UNUSED void func_800A4C34(UNUSED s32 countdown, UNUSED Object_Racer *racer, UNUSED s32 updateRate) {
+/**
+ * Unused function for rendering the race countdown.
+ */
+UNUSED void unused_render_countdown(UNUSED s32 countdown, UNUSED Object_Racer *racer, UNUSED s32 updateRate) {
 }
 
 /**
@@ -2584,6 +2592,9 @@ void hud_finish_position(Object_Racer *racer) {
     }
 }
 
+/**
+ * Renders the race finish screen for multiplayer mode including final times and placement.
+ */
 void hud_race_finish_multiplayer(Object_Racer *racer, s32 updateRate) {
     UNUSED s32 *var_a0;
     UNUSED s32 var_t0;
@@ -3298,7 +3309,7 @@ void minimap_init(LevelModel *model) {
     gMinimapGreen = (model->minimapColor >> 8) & 0xFF;
     gMinimapBlue = model->minimapColor & 0xFF;
     load_sprite_info(model->minimapSpriteIndex, &gMinimapDotOffsetX, &gMinimapDotOffsetY, &sp2C, &sp2C, &sp2C);
-    func_8007CA68(model->minimapSpriteIndex, 0, &D_80126D14, &D_80126D18, &sp2C);
+    sprite_get_frame_bounds(model->minimapSpriteIndex, 0, &D_80126D14, &D_80126D18, &sp2C);
     model->minimapSpriteIndex = (s32) tex_load_sprite(model->minimapSpriteIndex, 1);
 }
 

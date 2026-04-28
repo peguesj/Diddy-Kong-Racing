@@ -262,7 +262,9 @@ void dmacopy(u32 romOffset, u32 ramAddress, s32 numBytes) {
     osSendMesg(&gDmaMutex, (OSMesg) 1, OS_MESG_NOBLOCK);
 }
 
-// Looks like v2 ROMs made an alternate version of this function, and this is the original.
+/**
+ * Performs a chunked DMA transfer from ROM to RAM, splitting large transfers into MAX_TRANSFER_SIZE pieces.
+ */
 void dmacopy_internal(u32 romOffset, u32 ramAddress, s32 numBytes) {
 #endif
     OSMesg dmaMesg;

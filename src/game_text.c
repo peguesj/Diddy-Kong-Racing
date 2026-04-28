@@ -402,6 +402,9 @@ void process_onscreen_textbox(s32 updateRate) {
     }
 }
 
+/**
+ * Runs the challenge dialogue loop, displaying race results text and handling player button input to continue.
+ */
 s32 dialogue_challenge_loop(void) {
     s32 xPos;
     s32 index;
@@ -427,14 +430,14 @@ s32 dialogue_challenge_loop(void) {
 
     for (index = 0, numberOfOnes = 0; D_8012A78E != numberOfOnes && D_8012A7A0[index] != 2; index++) {
         if (D_8012A7A0[index] >= 3 && D_8012A7A0[index] < 13) {
-            index = func_800C38B4(index, &textBox);
+            index = parse_textbox_control_codes(index, &textBox);
         }
         if (D_8012A7A0[index] == 1) {
             numberOfOnes++;
         }
     }
     if (D_8012A7A0[index] >= 3 && D_8012A7A0[index] < 13) {
-        index = func_800C38B4(index, &textBox);
+        index = parse_textbox_control_codes(index, &textBox);
     }
 
     keepLooping = TRUE;
@@ -456,7 +459,7 @@ s32 dialogue_challenge_loop(void) {
             keepLooping = FALSE;
         }
         if (D_8012A7A0[index] >= 3 && D_8012A7A0[index] < 13) {
-            index = func_800C38B4(index, &textBox);
+            index = parse_textbox_control_codes(index, &textBox);
         }
     } while (keepLooping);
     playerButtons = input_pressed(PLAYER_ONE);
@@ -479,7 +482,10 @@ s32 dialogue_challenge_loop(void) {
     return 1;
 }
 
-s32 func_800C38B4(s32 arg0, TextBox *textbox) {
+/**
+ * Reads embedded control codes from the text buffer to configure textbox font, position, colour, and timing.
+ */
+s32 parse_textbox_control_codes(s32 arg0, TextBox *textbox) {
     s32 temp;
     char *var_s0;
 

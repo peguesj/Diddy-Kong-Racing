@@ -106,6 +106,9 @@ const char D_800E49F0[] =
 /******************************************************************************
  * Audio Manager API
  *****************************************************************************/
+/**
+ * Creates and initialises the audio manager thread, DMA buffers, and synthesizer configuration.
+ */
 void amCreateAudioMgr(ALSynConfig *c, OSPri pri, OSSched *audSched) {
     s32 i;
     f32 fsize;
@@ -273,6 +276,9 @@ static void __amMain(UNUSED void *arg) {
  * know that the next frame of audio is ready for processing.
  *
  *****************************************************************************/
+/**
+ * Builds and submits an audio RSP task for the current frame, adjusting sample count to stay in sync with video.
+ */
 static u32 __amHandleFrameMsg(AudioInfo *info, AudioInfo *lastInfo) {
     s16 *audioPtr;
     Acmd *cmdp;
@@ -348,6 +354,9 @@ static u32 __amHandleFrameMsg(AudioInfo *info, AudioInfo *lastInfo) {
  * to make sure we completed before we were out of samples.
  *
  *****************************************************************************/
+/**
+ * Handles the audio task completion message and checks for DAC sample underrun.
+ */
 static void __amHandleDoneMsg(UNUSED AudioInfo *info) {
     s32 samplesLeft;
     static int firstTime = 1;
@@ -373,6 +382,9 @@ static void __amHandleDoneMsg(UNUSED AudioInfo *info) {
  * __clearAudioDMA routine.
  *
  *****************************************************************************/
+/**
+ * Performs a DMA transfer of audio sample data from ROM to RAM, reusing cached buffers when possible.
+ */
 static s32 __amDMA(s32 addr, s32 len, UNUSED void *state) {
     void *foundBuffer;
     s32 delta, addrEnd, buffEnd;
@@ -460,6 +472,9 @@ static s32 __amDMA(s32 addr, s32 len, UNUSED void *state) {
  * to the dma routine.
  *
  *****************************************************************************/
+/**
+ * Initialises the DMA buffer state on first call and returns the audio DMA callback function.
+ */
 static ALDMAproc __amDmaNew(AMDMAState **state) {
 
     if (!dmaState.initialized) { /* only do this once */
@@ -481,6 +496,9 @@ static ALDMAproc __amDmaNew(AMDMAState **state) {
  * back to the unused list.
  *
  *****************************************************************************/
+/**
+ * Reclaims stale DMA buffers by moving those unused for FRAME_LAG frames back to the free list.
+ */
 static void __clearAudioDMA(void) {
     u32 i;
     OSIoMesg *iomsg = 0;

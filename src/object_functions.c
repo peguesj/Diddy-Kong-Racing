@@ -486,7 +486,7 @@ void obj_loop_laserbolt(Object *obj, s32 updateRate) {
 }
 
 /**
- * Torch / Mist init behaviour.
+ * Torch or Mist init behaviour.
  * Sets scale and animation speed based off spawn info.
  */
 void obj_init_torch_mist(Object *obj, LevelObjectEntry_Torch_Mist *entry) {
@@ -500,7 +500,7 @@ void obj_init_torch_mist(Object *obj, LevelObjectEntry_Torch_Mist *entry) {
 }
 
 /**
- * Torch / Mist loop behaviour.
+ * Torch or Mist loop behaviour.
  * Updates the animation frame based on spawn info's animation speed.
  */
 void obj_loop_torch_mist(Object *obj, s32 updateRate) {
@@ -881,7 +881,7 @@ void obj_loop_rocketsignpost(Object *obj, UNUSED s32 updateRate) {
 }
 
 /**
- * Air/Water Zipper init behaviour.
+ * Air-Water Zipper init behaviour.
  * Sets scale and angle based on entry data.
  */
 void obj_init_airzippers_waterzippers(Object *obj, LevelObjectEntry_AirZippers_WaterZippers *entry) {
@@ -909,7 +909,7 @@ void obj_init_airzippers_waterzippers(Object *obj, LevelObjectEntry_AirZippers_W
 }
 
 /**
- * Air/Water Zipper loop behaviour.
+ * Air-Water Zipper loop behaviour.
  * Searches for a racer among its interactions.
  * If a racer passes over it, set the value to initiate a boost on their end to true.
  * Will turn invisible and intangible if there are no hovercraft or airplanes being used.
@@ -1369,13 +1369,13 @@ void obj_loop_stopwatchman(Object *obj, s32 updateRate) {
                     tt->nodeBack1 = tt->nodeCurrent;
                 }
             } else {
-                diffZ = func_8001C6C4(tt, obj, updateRateF, 1.0f, 0);
+                diffZ = update_npc_path_movement(tt, obj, updateRateF, 1.0f, 0);
                 tt->animFrameF += diffZ * 1.5;
             }
             break;
     }
     obj->trans.y_position = tempPosY;
-    index = func_8002B0F4(obj->segmentID, obj->trans.x_position, obj->trans.z_position, &water);
+    index = track_find_water_at_point(obj->segmentID, obj->trans.x_position, obj->trans.z_position, &water);
     if (index != 0) {
         index--;
         while (index >= 0) {
@@ -1392,7 +1392,7 @@ void obj_loop_stopwatchman(Object *obj, s32 updateRate) {
         gNPCPosY = obj->trans.y_position;
     }
     obj->animFrame = 1.0 * tt->animFrameF;
-    func_80061C0C(obj);
+    object_clamp_anim_bounds(obj);
     if (0) {} // Fakematch
     if (obj->properties.tt.timer > 0) {
         obj->properties.tt.timer -= updateRate;
@@ -1415,6 +1415,10 @@ void play_tt_voice_clip(u16 soundID, s32 interrupt) {
     }
 }
 
+/**
+ * Fish init behaviour.
+ * Sets up the fish's movement path, vertices, triangles, texture UVs, and initial position along a figure-eight curve.
+ */
 void obj_init_fish(Object *fishObj, LevelObjectEntry_Fish *fishEntry, s32 param) {
     Object_Fish *fish;
     s32 pad0[2];
@@ -1510,6 +1514,10 @@ void obj_init_fish(Object *fishObj, LevelObjectEntry_Fish *fishEntry, s32 param)
     }
 }
 
+/**
+ * Fish loop behaviour.
+ * Moves the fish along its figure-eight path, updates rotation to face its heading, and animates tail vertices.
+ */
 void obj_loop_fish(Object *fishObj, s32 updateRate) {
     f32 zThing;
     f32 yThing;
@@ -1628,10 +1636,18 @@ void obj_loop_lavaspurt(Object *obj, s32 updateRate) {
     }
 }
 
+/**
+ * Position arrow init behaviour.
+ * Sets the arrow invisible on spawn.
+ */
 void obj_init_posarrow(Object *obj, UNUSED LevelObjectEntry_PosArrow *entry) {
     obj->trans.flags |= OBJ_FLAGS_INVISIBLE;
 }
 
+/**
+ * Position arrow loop behaviour.
+ * Makes the arrow visible above CPU racers to indicate their position in the race.
+ */
 void obj_loop_posarrow(Object *obj, UNUSED s32 updateRate) {
     Object_Racer *racer;
     Object **racerObjects;
@@ -1685,6 +1701,10 @@ void obj_init_animator(Object *obj, LevelObjectEntry_Animator *entry, s32 param)
     obj_loop_animator(obj, 0x20000);
 }
 
+/**
+ * Object animator loop behaviour.
+ * Scrolls UV coordinates on a specific triangle batch within a level segment based on the animator's speed factors.
+ */
 void obj_loop_animator(Object *obj, s32 updateRate) {
     s32 pad[2];
     Object_Animator *animator;
@@ -1777,6 +1797,10 @@ void obj_loop_animator(Object *obj, s32 updateRate) {
     }
 }
 
+/**
+ * Cutscene animation init behaviour.
+ * Configures actor index, channel, scale, rotation, and spawns animated cutscene objects as needed.
+ */
 void obj_init_animation(Object *obj, LevelObjectEntry_Animation *entry, s32 arg2) {
     Object *animTarget;
     s8 tempOrderIndex;
@@ -1792,12 +1816,12 @@ void obj_init_animation(Object *obj, LevelObjectEntry_Animation *entry, s32 arg2
     obj->trans.rotation.x_rotation = entry->x_rotation << 8;
     obj->trans.rotation.z_rotation = entry->z_rotation << 8;
     if (entry->actorIndex == -2) {
-        entry->actorIndex = func_8001F3B8();
+        entry->actorIndex = get_cutscene_actor_index();
     } else {
         if (entry->actorIndex < 0 && entry->actorIndex >= -2) {
             entry->actorIndex = 0;
         }
-        func_8001F3C8(entry->actorIndex);
+        set_cutscene_actor_index(entry->actorIndex);
     }
     if (entry->channel == -1) {
         entry->channel = cutscene_id();
@@ -1805,7 +1829,7 @@ void obj_init_animation(Object *obj, LevelObjectEntry_Animation *entry, s32 arg2
     if (entry->channel == 20) {
         entry->actorIndex |= 0x80;
     }
-    tempOrderIndex = func_8001F3EC(entry->actorIndex);
+    tempOrderIndex = count_animated_objects_by_behaviour(entry->actorIndex);
     if (entry->order == -2) {
         entry->order = tempOrderIndex;
         if (entry->order < 0) {
@@ -1827,7 +1851,7 @@ void obj_init_animation(Object *obj, LevelObjectEntry_Animation *entry, s32 arg2
     }
     if (((cutscene_id() == entry->channel) || (entry->channel == 20)) && (obj->animTarget == NULL) &&
         (entry->order == 0) && (entry->objectIdToSpawn != -1)) {
-        func_8001F23C(obj, entry);
+        spawn_cutscene_object(obj, entry);
     }
     animTarget = obj->animTarget;
     if (obj->animTarget != NULL) {
@@ -1837,13 +1861,17 @@ void obj_init_animation(Object *obj, LevelObjectEntry_Animation *entry, s32 arg2
             obj->animTarget = NULL;
         }
     }
-    if (func_80021600(obj->properties.animation.behaviourID)) {
-        func_8001EE74();
+    if (get_animation_actor_count(obj->properties.animation.behaviourID)) {
+        spawn_cutscene_animation_targets();
     }
 }
 
+/**
+ * Animated object loop behaviour.
+ * Updates the object's position along its spline path.
+ */
 void obj_loop_animobject(Object *obj, s32 updateRate) {
-    func_8001F460(obj, updateRate, obj);
+    update_animated_object_spline(obj, updateRate, obj);
 }
 
 /**
@@ -1855,16 +1883,24 @@ void obj_loop_dooropener(Object *obj, s32 updateRate) {
     Object_AnimatedObject *doorOpener;
 
     doorOpener = obj->animatedObject;
-    openDoors = 1 - func_8001F460(obj, updateRate, obj);
+    openDoors = 1 - update_animated_object_spline(obj, updateRate, obj);
     if (doorOpener->startDelay > 0) {
         openDoors = FALSE;
     }
     obj_door_open(openDoors);
 }
 
+/**
+ * Override position init behaviour.
+ * Does nothing.
+ */
 void obj_init_overridepos(UNUSED Object *obj, UNUSED LevelObjectEntry_OverridePos *entry) {
 }
 
+/**
+ * Override position loop behaviour.
+ * Does nothing.
+ */
 UNUSED void obj_loop_overridepos(UNUSED Object *obj, UNUSED s32 arg1) {
 }
 
@@ -1892,7 +1928,7 @@ void obj_loop_wizpigship(Object *wizShipObj, s32 updateRate) {
     LevelObjectEntryCommon newObject;
     ObjectTransform trans;
 
-    func_8001F460(wizShipObj, updateRate, wizShipObj);
+    update_animated_object_spline(wizShipObj, updateRate, wizShipObj);
     if (wizShipObj->modelInstances[0] != NULL) {
         wizShipModel = wizShipObj->modelInstances[0]->objModel;
         if (wizShipObj->properties.wizpigship.timer > 0) {
@@ -1954,7 +1990,7 @@ void obj_loop_vehicleanim(Object *obj, s32 updateRate) {
     AttachPoint *attachPoint;
     Object *attachObj;
 
-    func_8001F460(obj, updateRate, obj);
+    update_animated_object_spline(obj, updateRate, obj);
     attachPoint = obj->attachPoints;
     if (attachPoint == NULL || attachPoint->count <= 0) {
         return;
@@ -1980,8 +2016,12 @@ void obj_init_hittester(Object *obj, UNUSED LevelObjectEntry_HitTester *entry) {
     obj->interactObj->pushForce = 0;
 }
 
+/**
+ * Hit tester loop behaviour.
+ * Updates the object's position along its spline path.
+ */
 void obj_loop_hittester(Object *obj, s32 updateRate) {
-    func_8001F460(obj, updateRate, obj);
+    update_animated_object_spline(obj, updateRate, obj);
 }
 
 /**
@@ -1995,6 +2035,10 @@ void obj_init_dynamic_lighting_object(Object *obj, UNUSED LevelObjectEntry_Dynam
     obj->interactObj->pushForce = 0;
 }
 
+/**
+ * Unknown object type 96 init behaviour.
+ * Sets hitbox to add solidity with a fixed radius.
+ */
 void obj_init_unknown96(Object *obj, UNUSED LevelObjectEntry_Unknown96 *entry) {
     obj->interactObj->flags = INTERACT_FLAGS_SOLID | INTERACT_FLAGS_UNK_0080;
     obj->interactObj->unk11 = 2;
@@ -2034,7 +2078,7 @@ void obj_loop_snowball(Object *obj, s32 updateRate) {
                                        obj->trans.z_position);
         }
     }
-    func_8001F460(obj, updateRate, obj);
+    update_animated_object_spline(obj, updateRate, obj);
 }
 
 /**
@@ -2063,7 +2107,7 @@ void obj_loop_char_select(Object *charSelectObj, s32 updateRate) {
     u8 *actorIDs;
 
     playerIndex = 0;
-    func_8001F460(charSelectObj, updateRate, NULL);
+    update_animated_object_spline(charSelectObj, updateRate, NULL);
     charSelect = charSelectObj->animatedObject;
     charSelectObj->particleEmittersEnabled = OBJ_EMIT_NONE;
     if (charSelect != NULL) {
@@ -2156,12 +2200,12 @@ void obj_loop_animcamera(Object *obj, s32 updateRate) {
     s32 updateCam;
     Object_AnimatedObject *camera;
 
-    temp_v0 = func_8001F460(obj, updateRate, obj);
+    temp_v0 = update_animated_object_spline(obj, updateRate, obj);
     obj->trans.flags |= OBJ_FLAGS_INVISIBLE;
     camera = obj->animatedObject;
     if (temp_v0 == 0) {
         if (cam_get_viewport_layout() == VIEWPORT_LAYOUT_1_PLAYER) {
-            updateCam = func_800210CC(camera->unk44);
+            updateCam = set_camera_animation_priority(camera->unk44);
         } else {
             updateCam = TRUE;
         }
@@ -2192,7 +2236,7 @@ void obj_loop_animcar(Object *obj, s32 updateRate) {
     if (racerID != 0) {
         racerObj = get_racer_object(racerID - 1);
     }
-    obj->properties.animatedObj.unk4 = func_8001F460(obj, updateRate, obj);
+    obj->properties.animatedObj.unk4 = update_animated_object_spline(obj, updateRate, obj);
     obj->trans.flags |= OBJ_FLAGS_INVISIBLE;
     if (obj->properties.animatedObj.unk4 == 0 && racerObj != NULL) {
         Object_Racer *racer = racerObj->racer;
@@ -2200,6 +2244,10 @@ void obj_loop_animcar(Object *obj, s32 updateRate) {
     }
 }
 
+/**
+ * Info point init behaviour.
+ * Configures hitbox flags, interaction radius, visibility, and rotation from spawn entry data.
+ */
 void obj_init_infopoint(Object *obj, LevelObjectEntry_InfoPoint *entry) {
     if (entry->hitbox[1] != 0) {
         obj->interactObj->flags = INTERACT_FLAGS_SOLID | INTERACT_FLAGS_UNK_0020;
@@ -2214,6 +2262,10 @@ void obj_init_infopoint(Object *obj, LevelObjectEntry_InfoPoint *entry) {
     obj->trans.rotation.y_rotation = entry->unkB << 10; // Not sure about the values here.
 }
 
+/**
+ * Info point loop behaviour.
+ * Displays or hides the object, and triggers a text message when a human player presses Z within range.
+ */
 void obj_loop_infopoint(Object *obj, UNUSED s32 updateRate) {
     s16 player;
     ObjectInteraction *interactObj;
@@ -2265,9 +2317,17 @@ void obj_loop_smoke(Object *obj, s32 updateRate) {
     }
 }
 
+/**
+ * Unknown object type 25 init behaviour.
+ * Does nothing.
+ */
 void obj_init_unknown25(UNUSED Object *obj, UNUSED LevelObjectEntry_Unknown25 *entry) {
 }
 
+/**
+ * Unknown object type 25 loop behaviour.
+ * Advances the animation frame and frees the object when the animation completes.
+ */
 void obj_loop_unknown25(Object *obj, s32 updateRate) {
     obj->animFrame += updateRate * 8;
     if (obj->animFrame > 255) {
@@ -2276,9 +2336,17 @@ void obj_loop_unknown25(Object *obj, s32 updateRate) {
     }
 }
 
+/**
+ * Warden smoke init behaviour.
+ * Does nothing.
+ */
 void obj_init_wardensmoke(UNUSED Object *obj, UNUSED LevelObjectEntry_WardenSmoke *entry) {
 }
 
+/**
+ * Warden smoke loop behaviour.
+ * Drifts the smoke upward, advances the animation, and frees the object when the animation completes.
+ */
 void obj_loop_wardensmoke(Object *obj, s32 updateRate) {
     f32 updateRateF;
 
@@ -2519,7 +2587,7 @@ void obj_loop_dino_whale(Object *obj, s32 updateRate) {
         obj->properties.dinoWhale.unk0 = 0;
     }
     animFrame = obj->animFrame;
-    func_8001F460(obj, updateRate, obj);
+    update_animated_object_spline(obj, updateRate, obj);
     play_footstep_sounds(obj, 0, animFrame, SOUND_STOMP2, SOUND_STOMP3);
     if (obj->interactObj->distance < 255) {
         if (obj->properties.dinoWhale.unk0 == 0) {
@@ -3042,7 +3110,7 @@ void obj_loop_parkwarden(Object *obj, s32 updateRate) {
                     taj->unk1C = 0;
                 }
                 if (taj->unk1C < 120) {
-                    taj->animFrameF += func_8001C6C4(taj, obj, updateRateF, 1.0f, 0);
+                    taj->animFrameF += update_npc_path_movement(taj, obj, updateRateF, 1.0f, 0);
                 } else {
                     var_a2 = taj->unk1E - (obj->trans.rotation.y_rotation & 0xFFFF);
                     if (var_a2 > 0x8000) {
@@ -3137,7 +3205,7 @@ void obj_loop_parkwarden(Object *obj, s32 updateRate) {
             break;
     }
     obj->trans.y_position = tempPosY;
-    var_a2 = func_8002B0F4(obj->segmentID, obj->trans.x_position, obj->trans.z_position, &water);
+    var_a2 = track_find_water_at_point(obj->segmentID, obj->trans.x_position, obj->trans.z_position, &water);
     if (var_a2 != 0) {
         var_a2--;
         while (var_a2 >= 0) {
@@ -3158,7 +3226,7 @@ void obj_loop_parkwarden(Object *obj, s32 updateRate) {
                          ASSET_OBJECT_ID_WARDENSMOKE, SOUND_NONE, 1.0f, 0);
     }
     obj->animFrame = taj->animFrameF * 1.0;
-    func_80061C0C(obj);
+    object_clamp_anim_bounds(obj);
     obj_spawn_particle(obj, updateRate);
 }
 
@@ -3176,6 +3244,10 @@ void play_taj_voice_clip(u16 soundID, s32 interrupt) {
     }
 }
 
+/**
+ * Game Boy park warden loop behaviour.
+ * Does nothing.
+ */
 void obj_loop_gbparkwarden(UNUSED Object *obj, UNUSED s32 updateRate) {
 }
 
@@ -3298,6 +3370,10 @@ void obj_loop_modechange(Object *obj, UNUSED s32 updateRate) {
     }
 }
 
+/**
+ * Bonus init behaviour.
+ * Sets up the trigger plane, scale, direction, and hitbox radius from spawn entry data.
+ */
 void obj_init_bonus(Object *obj, LevelObjectEntry_Bonus *entry) {
     f32 radius;
     Object_Trigger *bonus;
@@ -3321,6 +3397,10 @@ void obj_init_bonus(Object *obj, LevelObjectEntry_Bonus *entry) {
     obj->interactObj->pushForce = 0;
 }
 
+/**
+ * Bonus loop behaviour.
+ * Grants racers within range a full set of 10 bananas when they cross the trigger plane.
+ */
 void obj_loop_bonus(Object *obj, UNUSED s32 updateRate) {
     Object *racerObj;
     Object_Racer *racer;
@@ -3374,9 +3454,9 @@ void obj_init_goldenballoon(Object *obj, LevelObjectEntry_GoldenBalloon *entry) 
     f32 scalef;
 
     if (entry->balloonID == -1) {
-        entry->balloonID = func_8000CC20(obj);
+        entry->balloonID = object_slots_alloc(obj);
     } else {
-        func_8000CBF0(obj, entry->balloonID);
+        object_slots_set(obj, entry->balloonID);
     }
     if (entry->balloonID == -1) {
         rmonPrintf("Illegal door no!!!\n"); // Did the devs just copy-paste the door init function?
@@ -3492,7 +3572,7 @@ void obj_loop_goldenballoon(Object *obj, s32 updateRate) {
                     npc->nodeBack1 = npc->nodeCurrent;
                 }
             } else {
-                func_8001C6C4(npc, obj, updateRateF, speedf, 0);
+                update_npc_path_movement(npc, obj, updateRateF, speedf, 0);
             }
         }
     }
@@ -3508,9 +3588,9 @@ void obj_init_door(Object *obj, LevelObjectEntry_Door *entry) {
 
     door = obj->door;
     if (entry->doorID == -1) {
-        entry->doorID = func_8000CC20(obj);
+        entry->doorID = object_slots_alloc(obj);
     } else {
-        func_8000CBF0(obj, entry->doorID);
+        object_slots_set(obj, entry->doorID);
     }
     door->doorID = entry->doorID;
     door->doorType = entry->doorType;
@@ -3871,14 +3951,18 @@ void obj_loop_ttdoor(Object *obj, s32 updateRate) {
     obj->collisionData->collidedObj = NULL;
 }
 
+/**
+ * Trigger zone init behaviour.
+ * Allocates a slot index, sets up scale, direction plane, radius, and hitbox from spawn entry data.
+ */
 void obj_init_trigger(Object *obj, LevelObjectEntry_Trigger *entry) {
     f32 radius;
     Object_Trigger *trigger;
 
     if (entry->index == -1) {
-        entry->index = func_8000CC20(obj);
+        entry->index = object_slots_alloc(obj);
     } else {
-        func_8000CBF0(obj, entry->index);
+        object_slots_set(obj, entry->index);
     }
     if (entry->index == -1) {
         rmonPrintf("Illegal door no!!!\n");
@@ -3904,6 +3988,10 @@ void obj_init_trigger(Object *obj, LevelObjectEntry_Trigger *entry) {
     obj->interactObj->pushForce = 0;
 }
 
+/**
+ * Trigger zone loop behaviour.
+ * Fires a one-shot event when a racer crosses the trigger plane, setting course flags and optionally showing text or pausing animations.
+ */
 void obj_loop_trigger(Object *obj, UNUSED s32 updateRate) {
     s32 i;
     s32 curRaceType;
@@ -3951,7 +4039,7 @@ void obj_loop_trigger(Object *obj, UNUSED s32 updateRate) {
                                     set_current_text(triggerEntry->unkB);
                                 }
                                 if (triggerEntry->unkC != 0xFF) {
-                                    func_80021400(triggerEntry->unkC + 0x80);
+                                    set_animation_pause_state(triggerEntry->unkC + 0x80);
                                 }
                             }
                         }
@@ -4129,7 +4217,7 @@ void obj_loop_rampswitch(Object *obj, UNUSED s32 updateRate) {
 /**
  * Sea monster init function.
  * Does nothing, as the sea monster is an unused object.
- * More info: https://tcrf.net/Diddy_Kong_Racing/Unused_Models#Sea_Monster
+ * More info: https:tcrf.net-Diddy_Kong_Racing-Unused_Models#Sea_Monster
  */
 void obj_init_seamonster(UNUSED Object *obj, UNUSED LevelObjectEntry_SeaMonster *entry) {
 }
@@ -4439,7 +4527,7 @@ void obj_loop_banana(Object *obj, s32 updateRate) {
                 properties->status = BANANA_IDLE;
             }
             radius = -10000.0f;
-            if (func_8002B9BC(obj, &radius, NULL, 1) != 0 && obj->trans.y_position < radius) {
+            if (track_get_surface_info(obj, &radius, NULL, 1) != 0 && obj->trans.y_position < radius) {
                 properties->status = BANANA_IDLE;
                 obj->trans.y_position = radius;
             }
@@ -5239,7 +5327,7 @@ void weapon_trap(Object *weaponObj, s32 updateRate) {
             }
         }
         radius = -10000.0f;
-        if (func_8002B9BC(weaponObj, &radius, NULL, 1) && (weaponObj->trans.y_position < radius)) {
+        if (track_get_surface_info(weaponObj, &radius, NULL, 1) && (weaponObj->trans.y_position < radius)) {
             weaponProperties->status = WEAPON_ARMED;
             weaponProperties->submerged = 1;
             weaponProperties->scale = 0;
@@ -5495,7 +5583,9 @@ void obj_init_audioreverb(Object *obj, LevelObjectEntry_AudioReverb *entry) {
     free_object(obj);
 }
 
-/* Official name: texscrollInit */
+/**
+ * Initialise a texture-scroll object by clamping its texture index to the level range and storing scroll speeds from the level entry.
+ */
 void obj_init_texscroll(Object *obj, LevelObjectEntry_TexScroll *entry, s32 arg2) {
     Object_TexScroll *texscroll;
     LevelModel *levelModel;
@@ -5519,6 +5609,10 @@ void obj_init_texscroll(Object *obj, LevelObjectEntry_TexScroll *entry, s32 arg2
     }
 }
 
+/**
+ * Texture scroll loop behaviour.
+ * Scrolls UV coordinates on all level geometry batches that share this object's texture index.
+ */
 void obj_loop_texscroll(Object *obj, s32 updateRate) {
     s32 pad[2];
     LevelModel *levelModel;
@@ -5614,7 +5708,9 @@ void obj_loop_texscroll(Object *obj, s32 updateRate) {
     }
 }
 
-/* Official name: rgbalightInit */
+/**
+ * Initialise an RGBA light object by creating a dynamic light from the level object entry data.
+ */
 void obj_init_rgbalight(Object *obj, LevelObjectEntry_RgbaLight *entry, UNUSED s32 arg2) {
     obj->light = light_add_from_level_object_entry(obj, entry);
 }
@@ -5808,6 +5904,10 @@ void obj_init_wavegenerator(Object *obj, UNUSED LevelObjectEntry_WaveGenerator *
     wavegen_add(obj);
 }
 
+/**
+ * Butterfly init behaviour.
+ * Sets up the butterfly's vertices, triangles, texture UVs, and initial movement state.
+ */
 void obj_init_butterfly(Object *butterflyObj, LevelObjectEntry_Butterfly *butterflyEntry, s32 param) {
     Object_Butterfly *butterfly;
     s32 uMask;
@@ -5872,6 +5972,10 @@ void obj_init_butterfly(Object *butterflyObj, LevelObjectEntry_Butterfly *butter
     }
 }
 
+/**
+ * Butterfly loop behaviour.
+ * Runs a state machine that idles, flies toward nearby racers or nodes, returns home, and animates wing flapping.
+ */
 void obj_loop_butterfly(Object *butterflyObj, s32 updateRate) {
     f32 xDiff;
     f32 yDiff;
@@ -6171,6 +6275,10 @@ void obj_loop_butterfly(Object *butterflyObj, s32 updateRate) {
     vertices[5].y = yPos;
 }
 
+/**
+ * MIDI fade zone init behaviour.
+ * Computes a directional plane and axis-aligned bounding box for a volume that controls MIDI channel fading.
+ */
 void obj_init_midifade(Object *obj, LevelObjectEntry_MidiFade *entry) {
     Object_MidiFade *midiFade;
     ModelInstance *modInst;
@@ -6280,6 +6388,10 @@ void obj_init_midifade(Object *obj, LevelObjectEntry_MidiFade *entry) {
     midiFade->unk1 = 0;
 }
 
+/**
+ * MIDI fade point init behaviour.
+ * Configures a spherical volume that controls MIDI channel fading based on distance from the object's center.
+ */
 void obj_init_midifadepoint(Object *obj, LevelObjectEntry_MidiFadePoint *entry) {
     Object_MidiFadePoint *midi_fade_point;
     ModelInstance *modInst;
@@ -6318,6 +6430,10 @@ void obj_init_midifadepoint(Object *obj, LevelObjectEntry_MidiFadePoint *entry) 
     obj->trans.scale = midi_fade_point->unk8;
 }
 
+/**
+ * MIDI channel set init behaviour.
+ * Stores MIDI channel parameters from the spawn entry into the object's properties.
+ */
 void obj_init_midichset(Object *obj, LevelObjectEntry_Midichset *entry) {
     Object_MidiChannelSet *temp = obj->midi_channel_set;
     temp->unk0 = entry->unk8;
@@ -6351,15 +6467,27 @@ void obj_loop_bubbler(Object *obj, s32 updateRate) {
     }
 }
 
+/**
+ * Boost init behaviour.
+ * Assigns the boost object's data pointer from the global boost asset table based on the racer index.
+ */
 void obj_init_boost(Object *obj, LevelObjectEntry_Boost2 *entry) {
     Object_Boost *asset20 = (Object_Boost *) get_misc_asset(ASSET_MISC_20);
     obj->boost = &asset20[entry->racerIndex];
     obj->level_entry = NULL;
 }
 
+/**
+ * Unknown object type 94 init behaviour.
+ * Does nothing.
+ */
 void obj_init_unknown94(UNUSED Object *obj, UNUSED LevelObjectEntry_Unknown94 *entry, UNUSED s32 arg2) {
 }
 
+/**
+ * Unknown object type 94 loop behaviour.
+ * Does nothing.
+ */
 void obj_loop_unknown94(UNUSED Object *obj, s32 UNUSED updateRate) {
 }
 
@@ -6606,7 +6734,7 @@ void obj_loop_pigrocketeer(Object *obj, s32 updateRate) {
     Object *boostObj;
     Object_Boost *boost;
 
-    func_8001F460(obj, updateRate, obj);
+    update_animated_object_spline(obj, updateRate, obj);
     boostObj = racerfx_get_boost(BOOST_DEFAULT);
 
     if (boostObj != NULL) {
@@ -6616,7 +6744,7 @@ void obj_loop_pigrocketeer(Object *obj, s32 updateRate) {
             boost->unk72 += updateRate;
             boost->unk70 = 2;
             boost->unk74 = 1.0f;
-            func_8000B750(obj, -1, 2, 1, 1);
+            spawn_boost_effect(obj, -1, 2, 1, 1);
         }
     }
 }
@@ -6699,7 +6827,11 @@ void obj_loop_levelname(Object *obj, s32 updateRate) {
     }
 }
 
+/**
+ * Wizpig ghosts loop behaviour.
+ * Updates the ghost's spline path movement and advances its animation frame.
+ */
 void obj_loop_wizghosts(Object *obj, s32 updateRate) {
-    func_8001F460(obj, updateRate, obj);
+    update_animated_object_spline(obj, updateRate, obj);
     obj->animFrame = (obj->animFrame + (updateRate * 8)) & 0xFF;
 }

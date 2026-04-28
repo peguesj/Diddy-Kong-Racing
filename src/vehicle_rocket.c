@@ -66,8 +66,8 @@ void update_rocket(s32 updateRate, f32 updateRateF, Object *obj, Object_Racer *r
     if (racer->velocity < 0.3 && -0.3 < racer->velocity) {
         *buttonsPressed = 0;
     }
-    if (racer->raceFinished == TRUE && func_80023568()) {
-        func_80021400(130);
+    if (racer->raceFinished == TRUE && get_active_animation_count()) {
+        set_animation_pause_state(130);
         racer->raceFinished++;
     }
     tempStartTimer = *startTimer;
@@ -91,7 +91,7 @@ void update_rocket(s32 updateRate, f32 updateRateF, Object *obj, Object_Racer *r
         }
     }
     racer->vehicleID = VEHICLE_CARPET;
-    func_80049794(updateRate, updateRateF, obj, racer);
+    update_racer_hovercraft_physics(updateRate, updateRateF, obj, racer);
     racer->vehicleID = racer->vehicleIDPrev;
     *startTimer = tempStartTimer;
     obj->particleEmittersEnabled = OBJ_EMIT_NONE;
@@ -149,7 +149,7 @@ void update_rocket(s32 updateRate, f32 updateRateF, Object *obj, Object_Racer *r
                 boost->unk72 += updateRate;
                 boost->unk70 = 2;
                 boost->unk74 = 1.0f;
-                func_8000B750(obj, -1, 2, 1, 1);
+                spawn_boost_effect(obj, -1, 2, 1, 1);
             }
         }
     }

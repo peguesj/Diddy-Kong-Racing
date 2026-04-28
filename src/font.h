@@ -179,15 +179,15 @@ s32 get_text_width(char *text, s32 x, s32 font);
 void *render_dialogue_text(s32 dialogueBoxID, s32 posX, s32 posY, char *text, s32 number, s32 flags);
 
 // Japanese Region exclusives
-void func_800C6464_C7064(void);
-void func_800C663C_C723C(void);
-void func_800C6870_C7470(void);
-void func_800C67F4_C73F4(void);
-s32 func_800C68CC_C74CC(u16 arg0);
+void font_reset_state(void);
+void font_init_kerning(void);
+void font_begin_batch(void);
+void font_flush_buffer(void);
+s32 font_get_char_width(u16 arg0);
 void fontCreateDisplayList(Gfx *dList, Asset46 *asset, s32 width, s32 height);
-s32 func_800C7744_C8344(Gfx **dList, u16 charIndex, s32 *outLeft, s32 *outTop, s32 *outRight, s32 *outBottom);
-void func_800C7804_C8404(s32 arg0);
+s32 font_render_character(Gfx **dList, u16 charIndex, s32 *outLeft, s32 *outTop, s32 *outRight, s32 *outBottom);
+void font_set_style(s32 arg0);
 void fontConvertString(char *inString, char *outString);
-void func_800C78E0_C84E0(void);
+void font_end_batch(void);
 
 #endif

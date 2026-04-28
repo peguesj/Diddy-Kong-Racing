@@ -663,7 +663,7 @@ s32 menu_file_select_loop(s32 updateRate);
 s32 fileselect_input_root(s32 updateRate);
 void charselect_music_channels(s32 updateRate);
 void gameselect_render(s32 updateRate);
-void func_80083098(f32);
+void menu_update_cursor(f32);
 void trackmenu_assets(s32);
 void render_track_selection_viewport_border(ObjectModel *objMdl);
 void adventuretrack_render(UNUSED s32 updateRate, s32 arg1, s32 arg2);
@@ -706,15 +706,15 @@ SIDeviceStatus savemenu_write(void);
 void trackmenu_setup_render(s32 updateRate);
 void rankings_render_order(s32 updateRate);
 void results_render(UNUSED s32 updateRate, f32 opacity);
-void func_80092188(s32 updateRate);
-SIDeviceStatus func_80087F14(s32 *controllerIndex, s32 xAxisDirection);
+void menu_update_vehicle_select(s32 updateRate);
+SIDeviceStatus menu_check_controller_paks(s32 *controllerIndex, s32 xAxisDirection);
 void postrace_start(s32 finishState, s32 worldID);
 
 // Non Matching functions below here
 void load_menu_text(s32 language); // Non Matching
 s32 menu_controller_pak_loop(s32 updateRate);
 void menu_game_select_init(void);
-void func_8008FF1C(s32 updateRate);
+void trackmenu_render_names(s32 updateRate);
 void trackmenu_input(s32 updateRate);
 void filename_trim(char *input, char *output);
 void menu_ghost_data_init(void);
@@ -725,19 +725,19 @@ void dialogue_tt_gamestatus(void);
 s32 menu_title_screen_loop(s32 updateRate);
 s32 menu_magic_codes_loop(s32 updateRate);
 s32 menu_credits_loop(s32 updateRate);
-void func_8007FFEC(s32 numberOfPanels);
+void menu_init_panels(s32 numberOfPanels);
 void set_gIntDisFlag(u8 setting);
 void init_save_data(void);
-void func_80080580(Gfx **dList, s32 startX, s32 startY, s32 width, s32 height, s32 borderWidth, s32 borderHeight,
+void menu_draw_bordered_rect(Gfx **dList, s32 startX, s32 startY, s32 width, s32 height, s32 borderWidth, s32 borderHeight,
                    s32 colour, TextureHeader *tex);
 void fileselect_input_copy(s32 updateRate);
 
-s32 func_8008F618(Gfx **dList, Mtx **mtx);
-void func_80080BC8(Gfx **);
-void func_80080E90(Gfx **dList, s32 startX, s32 startY, s32 width, s32 height, s32 borderWidth, s32 borderHeight,
+s32 trackmenu_render_preview(Gfx **dList, Mtx **mtx);
+void menu_render_panel_list(Gfx **);
+void menu_draw_gradient_rect(Gfx **dList, s32 startX, s32 startY, s32 width, s32 height, s32 borderWidth, s32 borderHeight,
                    s32 colour0, s32 colour1, s32 colour2, s32 colour3);
-void func_80084854(s32 updateRate);
-void func_80098774(s32);
+void menu_render_options(s32 updateRate);
+void menu_render_rankings(s32);
 void postrace_viewport(UNUSED s32 updateRate);
 
 void draw_text_with_shadow(s32 dialogueBoxID, s32 xPos1, s32 yPos1, s32 xPos2, 

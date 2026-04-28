@@ -237,7 +237,7 @@ s8 input_clamp_stick_mag(s8 stickMag) {
 }
 
 /**
- * Used when anti-cheat/anti-tamper has failed in level_global_init()
+ * Used when anti-cheat-anti-tamper has failed in level_global_init()
  * Official Name: joySetSecurity
  */
 void drm_disable_input(void) {

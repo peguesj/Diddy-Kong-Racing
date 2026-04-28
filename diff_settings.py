@@ -6,6 +6,7 @@ def apply(config, args):
     config["show_line_numbers_default"] = True
     config["expected_dir"] = "expected/"
     config["makeflags"] = ["REGION=" + args.region, "VERSION=" + args.version]
+    config["objdump_executable"] = "mipsel-linux-gnu-objdump"
 
 def add_custom_arguments(parser):
     parser.add_argument(

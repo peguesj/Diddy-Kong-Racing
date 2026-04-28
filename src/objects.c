@@ -211,7 +211,7 @@ f32 gObjectModelScaleY;
 s32 D_8011AD2C;
 f32 gCurrentLightIntensity;
 Object *gGhostObjPlayer;
-s32 gTimeTrialContPak; // gTimeTrialContPak is ultimately set by func_80074B34, and is almost definitely SIDeviceStatus
+s32 gTimeTrialContPak; // gTimeTrialContPak is ultimately set by ghost_load_from_controller_pak, and is almost definitely SIDeviceStatus
 s8 D_8011AD3C;
 s8 D_8011AD3D;
 s8 D_8011AD3E;
@@ -445,7 +445,10 @@ void racerfx_free(void) {
     gParticlePtrList_flush();
 }
 
-void func_8000B38C(Vertex *vertices, Triangle *triangles, ObjectTransform *trans, f32 arg3, f32 arg4, s16 arg5,
+/**
+ * Generate billboard sprite geometry as a rotated triangle fan with texture coordinates.
+ */
+void generate_billboard_geometry(Vertex *vertices, Triangle *triangles, ObjectTransform *trans, f32 arg3, f32 arg4, s16 arg5,
                    TextureHeader *tex) {
     s32 sp80[8];
     s32 i;
@@ -502,7 +505,10 @@ void func_8000B38C(Vertex *vertices, Triangle *triangles, ObjectTransform *trans
     }
 }
 
-void func_8000B750(Object *racerObj, s32 racerIndex, s32 vehicleIDPrev, s32 boostType, s32 arg4) {
+/**
+ * Spawn a boost visual effect on a racer based on vehicle type and boost level.
+ */
+void spawn_boost_effect(Object *racerObj, s32 racerIndex, s32 vehicleIDPrev, s32 boostType, s32 arg4) {
     Vec3f sp74;
     f32 temp_f0;
     f32 var_f2;
@@ -563,7 +569,7 @@ void func_8000B750(Object *racerObj, s32 racerIndex, s32 vehicleIDPrev, s32 boos
                     objTrans.rotation.y_rotation = -0x8000;
                     objTrans.rotation.x_rotation = 0;
                     objTrans.rotation.z_rotation = 0;
-                    func_8000B38C(&gBoostVerts[gBoostVertFlip][gNumOfBoostVerts],
+                    generate_billboard_geometry(&gBoostVerts[gBoostVertFlip][gNumOfBoostVerts],
                                   &gBoostTris[gBoostVertFlip][gNumOfBoostTris], &objTrans, var_f2, temp_f0,
                                   objBoostRacer->unk72 << 12, objBoostType->tex);
                     gBoostEffectObjects[racerIndex]->properties.boost.indexes =
@@ -672,7 +678,7 @@ void racerfx_update(s32 updateRate) {
             }
         }
         if ((boostObj->unk70 > 0) || (boostObj->unk74 > 0.0f)) {
-            func_8000B750((*gRacers)[i], racer->racerIndex, racer->vehicleIDPrev, racer->boostType, 0);
+            spawn_boost_effect((*gRacers)[i], racer->racerIndex, racer->vehicleIDPrev, racer->boostType, 0);
         }
         temp = racer->racerIndex;
         gRacerFXData[temp].unk1 += updateRate;
@@ -768,7 +774,9 @@ void allocate_object_pools(void) {
     clear_object_pointers();
 }
 
-// Decrypts cheats
+/**
+ * Decrypts cheat code data by transposing bit pairs across each 4-byte word.
+ */
 void decrypt_magic_codes(s32 *data, s32 length) {
     s32 i;
     s32 j;
@@ -931,7 +939,7 @@ void try_free_object_header(s32 index) {
 
 /**
  * Converts the passed value into an accurate countdown value based on the systems region.
- * Since PAL runs at 50Hz, it therefore will reduce the timer to 5/6 to match, keeping
+ * Since PAL runs at 50Hz, it therefore will reduce the timer to five-sixths to match, keeping
  * it consistent with non PAL timers, running 60Hz.
  * Official Name: objTvTimes
  */
@@ -1010,22 +1018,26 @@ void track_spawn_objects(s32 mapID, s32 index) {
             gParticlePtrList_flush();
             checkpoint_update_all();
             spectate_update();
-            func_8001E93C();
+            init_cutscene_objects();
         }
         gPathUpdateOff = TRUE;
     }
 }
 
-// Reset all values of D_8011AE08 to NULL
-void func_8000CBC0(void) {
+/**
+ * Clear all object slot entries.
+ */
+void object_slots_clear(void) {
     s32 i; // Required to be one line to match
     // clang-format off
     for (i = 0; i < ARRAY_COUNT(D_8011AE08); i++) { D_8011AE08[i] = NULL; }
     // clang-format on
 }
 
-// Set the object value for the given index if it's not already set
-void func_8000CBF0(Object *obj, s32 index) {
+/**
+ * Set the object for a given slot index, if the slot is empty.
+ */
+void object_slots_set(Object *obj, s32 index) {
     if (D_8011AE08[index] == NULL) {
         D_8011AE08[index] = obj;
     } else {
@@ -1033,8 +1045,11 @@ void func_8000CBF0(Object *obj, s32 index) {
     }
 }
 
-// Set the next available value in D_8011AE08, and return it's index value. -1 if it's not set.
-s32 func_8000CC20(Object *obj) {
+/**
+ * Allocate the next free object slot and return its index.
+ * Returns -1 if no slot is available.
+ */
+s32 object_slots_alloc(Object *obj) {
     s32 i;
     s32 NextFreeIndex;
 
@@ -1561,11 +1576,17 @@ s32 get_contpak_error(void) {
     }
 }
 
+/**
+ * Activates the bear token progress bar display on the HUD.
+ */
 void instShowBearBar(void) {
     D_800DC708 = 0x8000;
 }
 
-s8 func_8000E138(void) {
+/**
+ * Returns TRUE if racers are using different vehicle types.
+ */
+s8 has_mixed_vehicles(void) {
     return D_8011AD20;
 }
 
@@ -1723,7 +1744,10 @@ u8 is_in_time_trial(void) {
     return gIsTimeTrial;
 }
 
-UNUSED void func_8000E4E8(s32 index) {
+/**
+ * Reset the object map header for the given index and clear trailing bytes.
+ */
+UNUSED void object_map_reset_index(s32 index) {
     s32 *temp_v0;
     s32 i;
     u8 *temp_a1;
@@ -1745,7 +1769,10 @@ UNUSED void func_8000E4E8(s32 index) {
     // clang-format on
 }
 
-UNUSED s32 func_8000E558(Object *arg0) {
+/**
+ * Check if an object's level entry is within a valid object map range.
+ */
+UNUSED s32 object_map_entry_valid(Object *arg0) {
     s32 temp_v0;
     s32 new_var, new_var2;
     if (arg0->level_entry == NULL) {
@@ -1764,7 +1791,11 @@ UNUSED s32 func_8000E558(Object *arg0) {
     return TRUE;
 }
 
-void func_8000E5EC(LevelObjectEntryCommon *arg0) {
+/**
+ * Remove a level object entry from the object map by shifting subsequent entries.
+ * Updates all object level_entry pointers affected by the shift.
+ */
+void object_map_remove_entry(LevelObjectEntryCommon *arg0) {
     u8 *src;
     u8 *dst;
     s32 end;
@@ -1812,7 +1843,11 @@ void func_8000E5EC(LevelObjectEntryCommon *arg0) {
     }
 }
 
-void func_8000E79C(u8 *arg0, u8 *arg1) {
+/**
+ * Replace an object map entry with a new one, resizing if needed.
+ * Shifts subsequent entries to accommodate size changes.
+ */
+void object_map_replace_entry(u8 *arg0, u8 *arg1) {
     s32 arg0Value;
     s32 arg0Value2;
     s32 arg1Value;
@@ -1861,7 +1896,10 @@ void func_8000E79C(u8 *arg0, u8 *arg1) {
     gObjectMapSize[i] += arg1Value - arg0Value;
 }
 
-UNUSED u8 *func_8000E898(u8 *arg0, s32 arg1) {
+/**
+ * Get the next entry in the object map after the given entry.
+ */
+UNUSED u8 *object_map_get_next_entry(u8 *arg0, s32 arg1) {
     s32 temp_t6;
     s32 i;
     u8 *temp_v1;
@@ -1915,15 +1953,21 @@ UNUSED s32 particle_count(void) {
     return gParticleCount;
 }
 
+/**
+ * Registers a particle object in the global object pointer list and increments the particle count.
+ */
 void add_particle_to_entity_list(Object *obj) {
     obj->trans.flags |= OBJ_FLAGS_PARTICLE;
-    func_800245B4(obj->headerType | (OBJ_FLAGS_PARTICLE | OBJ_FLAGS_INVISIBLE));
+    set_object_draw_distance(obj->headerType | (OBJ_FLAGS_PARTICLE | OBJ_FLAGS_INVISIBLE));
     gObjPtrList[gObjectCount++] = obj;
     if (1) {} // Fakematch
     gParticleCount++;
 }
 
-// Official Name: ObjSetupObject
+/**
+ * Allocates and initialises a new object from a level object entry, loading its assets and behaviour.
+ * Official Name: ObjSetupObject
+ */
 Object *spawn_object(LevelObjectEntryCommon *entry, s32 spawnFlags) {
     s32 objType;
     Settings *settings;
@@ -1979,7 +2023,7 @@ Object *spawn_object(LevelObjectEntryCommon *entry, s32 spawnFlags) {
     curObj->headerType = headerType;
     curObj->level_entry = (LevelObjectEntry *) entry;
     curObj->objectID = objType;
-    func_800245B4(objType);
+    set_object_draw_distance(objType);
     curObj->trans.scale = curObj->header->scale;
     curObj->unk34 = curObj->header->unk50 * curObj->trans.scale;
     curObj->opacity = 255;
@@ -2324,6 +2368,9 @@ s32 init_object_shading(Object *obj, ShadeProperties *shadeData) {
     return (returnSize & ~3) + 4;
 }
 
+/**
+ * Initialises the attach points for an object by spawning each attached sub-object (e.g. vehicle parts).
+ */
 s32 obj_init_attachpoint(Object *obj) {
     Object *attachObj;
     AttachPoint *attachPoint;
@@ -2355,6 +2402,9 @@ s32 obj_init_attachpoint(Object *obj) {
     return FALSE;
 }
 
+/**
+ * Initialises particle emitters for an object based on its header's particle data entries.
+ */
 s32 obj_init_emitter(Object *obj, ParticleEmitter *emitter) {
     ObjHeaderParticleEntry *particleDataEntry;
     s32 i;
@@ -2433,7 +2483,7 @@ s32 init_object_interaction_data(Object *obj, ObjectInteraction *interactObj) {
  */
 s32 obj_init_collision(Object *obj, ObjectCollision *colData) {
     obj->collisionData = colData;
-    func_80016BC4(obj);
+    init_object_collision(obj);
     return sizeof(ObjectCollision);
 }
 
@@ -2514,7 +2564,7 @@ Object *obj_spawn_attachment(s32 objID) {
  * Official Name: objFreeObject
  */
 void free_object(Object *object) {
-    func_800245B4(object->objectID | OBJ_FLAGS_PARTICLE);
+    set_object_draw_distance(object->objectID | OBJ_FLAGS_PARTICLE);
     gParticlePtrList[gFreeListCount] = object;
     gFreeListCount++;
 }
@@ -2533,8 +2583,8 @@ UNUSED s32 obj_id_valid(s32 arg0) {
     return (gAssetsLvlObjTranslationTable[arg0] < gAssetsObjectHeadersTableLength);
 }
 
-/*
- * Clears all existing particles from the object list
+/**
+ * Clears all existing particles from the object list.
  */
 void gParticlePtrList_flush(void) {
     s32 j, i, search_indx;
@@ -2827,7 +2877,7 @@ void obj_update(s32 updateRate) {
     s32 sp54;
     Object *obj;
 
-    func_800245B4(-1);
+    set_object_draw_distance(-1);
     gEventStartTimer = gEventCountdown;
     if (gEventCountdown > 0 && race_starting() != FALSE) {
         gEventCountdown -= updateRate;
@@ -2849,12 +2899,12 @@ void obj_update(s32 updateRate) {
     }
     obj_tick_anims();
     process_object_interactions();
-    func_8001E89C();
+    restore_cutscene_positions();
     // Update collidable objects first.
     for (i = 0; i < gCollisionObjectCount; i++) {
         run_object_loop_func(gCollisionObjects[i], updateRate);
     }
-    func_8001E6EC(TRUE);
+    apply_cutscene_position_overrides(TRUE);
     for (i = 0; i < gCollisionObjectCount; i++) {
         obj_collision_transform(gCollisionObjects[i]);
     }
@@ -2880,7 +2930,7 @@ void obj_update(s32 updateRate) {
                         }
                     }
                     if (obj->header->unk72 != 0xFF) {
-                        func_80014090(obj, updateRate);
+                        scroll_object_texture_uvs(obj, updateRate);
                     }
                 }
             }
@@ -2927,7 +2977,7 @@ void obj_update(s32 updateRate) {
             }
         }
     }
-    func_8001E6EC(FALSE);
+    apply_cutscene_position_overrides(FALSE);
     if (gTajRaceInit) {
         mode_init_taj_race();
     }
@@ -2935,7 +2985,7 @@ void obj_update(s32 updateRate) {
         gParticlePtrList_flush();
         checkpoint_update_all();
         spectate_update();
-        func_8001E93C();
+        init_cutscene_objects();
     }
     if (gNumRacers != 0) {
         if (gRaceEndTimer == 0) {
@@ -2951,7 +3001,7 @@ void obj_update(s32 updateRate) {
     D_8011AD53 = 0;
     transform_player_vehicle();
     dialogue_try_close();
-    func_800179D0();
+    object_timers_tick();
 
     // @fake
     do {
@@ -2964,7 +3014,7 @@ void obj_update(s32 updateRate) {
             }
 
             if (sp54 & A_BUTTON) {
-                func_8001E45C(CUTSCENE_ID_UNK_64);
+                set_cutscene_id(CUTSCENE_ID_UNK_64);
             } else if ((sp54 & B_BUTTON) && (get_trophy_race_world_id() == 0) && (is_in_tracks_mode() == 0)) {
                 level_transition_begin(1); // FADE_BARNDOOR_HORIZONTAL?
             }
@@ -3044,7 +3094,7 @@ void obj_door_number(ObjectModel *model, Object *obj) {
 /**
  * Do nothing. Unused.
  */
-UNUSED void do_nothing_func_80011364(UNUSED s32 unused) {
+UNUSED void object_noop_stub(UNUSED s32 unused) {
 }
 
 /**
@@ -3085,7 +3135,10 @@ s32 get_race_start_timer(void) {
 }
 
 // Unused function, purpose currently unknown.
-UNUSED s32 func_800113BC(void) {
+/**
+ * Return the value of an unknown counter variable.
+ */
+UNUSED s32 get_unknown_counter(void) {
     return D_8011ADBC;
 }
 
@@ -3289,7 +3342,7 @@ void render_3d_misc(Object *obj) {
             break;
         case BHV_BOOST:
             if (obj->properties.common.unk0 && (obj->boost->unk70 > 0 || obj->boost->unk74 > 0.0f)) {
-                func_800135B8(obj);
+                render_boost_effect(obj);
             }
             break;
     }
@@ -3405,7 +3458,7 @@ void render_3d_billboard(Object *obj) {
 
 /**
  * Renders a 3D object, with support for vehicle part entities as part of the process.
- * Loads materials, and sets environment and/or primitive colours based on the material type.
+ * Loads materials, and sets environment and-or primitive colours based on the material type.
  * Computes the view matrix for the model, and calls a function to draw meshes.
  * Loops through racers to find vehicle parts, which are wheels and propellers.
  */
@@ -3578,7 +3631,7 @@ void render_3d_model(Object *obj) {
                                 isCargo = FALSE;
                             }
                             if (isCargo) {
-                                func_80012C98(&gObjectCurrDisplayList);
+                                dlist_segments_begin(&gObjectCurrDisplayList);
                                 gDPSetEnvColor(gObjectCurrDisplayList++, 255, 255, 255, 0);
                                 gDPSetPrimColor(gObjectCurrDisplayList++, 0, 0, intensity, intensity, intensity,
                                                 opacity);
@@ -3588,7 +3641,7 @@ void render_3d_model(Object *obj) {
                                                         &gObjectCurrVertexList, loopObj, something, flags);
                             if (isCargo) {
                                 gSPSelectMatrixDKR(gObjectCurrDisplayList++, G_MTX_DKR_INDEX_0);
-                                func_80012CE8(&gObjectCurrDisplayList);
+                                dlist_segments_end(&gObjectCurrDisplayList);
                             }
                         }
                         loopObj->trans.x_position -= vtxX;
@@ -3640,25 +3693,37 @@ void render_3d_model(Object *obj) {
     }
 }
 
-void func_80012C30(void) {
+/**
+ * Reset the display list segment counter.
+ */
+void dlist_segments_reset(void) {
     D_8011ADA4 = 0;
 }
 
-void func_80012C3C(Gfx **dList) {
+/**
+ * Render all stored display list segments.
+ */
+void dlist_segments_render(Gfx **dList) {
     s32 i;
     for (i = 0; i < D_8011ADA4; i++) {
         gSPDisplayList((*dList)++, D_8011AD78[i]);
     }
 }
 
-void func_80012C98(Gfx **dList) {
+/**
+ * Begin a new display list segment by inserting a placeholder command.
+ */
+void dlist_segments_begin(Gfx **dList) {
     if (D_8011ADA4 < 9) {
         gSPNoOp((*dList)++); // Placeholder instruction?
         D_8011AD78[D_8011ADA4] = *dList;
     }
 }
 
-void func_80012CE8(Gfx **dList) {
+/**
+ * End the current display list segment and link it for rendering.
+ */
+void dlist_segments_end(Gfx **dList) {
     if (D_8011ADA4 < 9) {
         gSPEndDisplayList((*dList)++);
         gSPBranchList(D_8011AD78[D_8011ADA4] - 1, *dList);
@@ -3736,6 +3801,9 @@ void object_undo_player_tumble(Object *obj) {
     }
 }
 
+/**
+ * Applies temporary model transform overrides such as squash effects and animation batch selection.
+ */
 void set_temp_model_transforms(Object *obj) {
     s32 batchNum;
     ObjectModel *objModel;
@@ -3918,7 +3986,10 @@ void unset_temp_model_transforms(Object *obj) {
 }
 
 // Renders the boost graphics.
-void func_800135B8(Object *boostObj) {
+/**
+ * Render the boost particle and sprite effects for a racer.
+ */
+void render_boost_effect(Object *boostObj) {
     Vertex *vtx;
     Triangle *tri;
     ObjectTransform_800135B8 objTransform;
@@ -4148,7 +4219,10 @@ void render_racer_magnet(Gfx **dList, Mtx **mtx, Vertex **vtxList, Object *obj) 
     }
 }
 
-void func_80014090(Object *obj, s32 arg1) {
+/**
+ * Scroll texture UV coordinates on an object's model triangles.
+ */
+void scroll_object_texture_uvs(Object *obj, s32 arg1) {
     ObjectHeader *objHeader;
     s16 width;
     s16 height;
@@ -4323,6 +4397,9 @@ s32 render_mesh(ObjectModel *objModel, Object *obj, s32 startIndex, s32 flags, s
     return i;
 }
 
+/**
+ * Returns the index of the first non-particle active object, sorting particles to the end of the list.
+ */
 s32 get_first_active_object(s32 *retObjCount) {
     s32 i, j;
     s32 minIndex, maxIndex;
@@ -4381,7 +4458,10 @@ s32 get_first_active_object(s32 *retObjCount) {
     return i;
 }
 
-UNUSED void func_800149C0(unk800149C0 *arg0, UNUSED s32 arg1, s32 arg2, s32 arg3, s32 *arg4, s32 *arg5, s32 arg6) {
+/**
+ * Unused collision checking function.
+ */
+UNUSED void unused_collision_check(unk800149C0 *arg0, UNUSED s32 arg1, s32 arg2, s32 arg3, s32 *arg4, s32 *arg5, s32 arg6) {
     UNUSED s32 pad;
     s32 endVal;
     s32 startVal;
@@ -4389,8 +4469,8 @@ UNUSED void func_800149C0(unk800149C0 *arg0, UNUSED s32 arg1, s32 arg2, s32 arg3
     s32 i;
 
     temp_f0 = arg0->unk6;
-    endVal = func_80014B50(arg2, arg3, temp_f0, arg0->unk4);
-    startVal = func_80014B50(arg2, endVal - 1, temp_f0, arg0->unk4 + 8);
+    endVal = check_object_within_range(arg2, arg3, temp_f0, arg0->unk4);
+    startVal = check_object_within_range(arg2, endVal - 1, temp_f0, arg0->unk4 + 8);
 
     for (i = startVal; i < endVal; i++) {
         gObjPtrList[i]->unk38 += arg6;
@@ -4400,8 +4480,11 @@ UNUSED void func_800149C0(unk800149C0 *arg0, UNUSED s32 arg1, s32 arg2, s32 arg3
     *arg5 = endVal - 1;
 }
 
-// Only used in the unused function func_800149C0
-s32 func_80014B50(s32 arg0, s32 arg1, f32 arg2, u32 arg3) {
+// Only used in the unused function unused_collision_check
+/**
+ * Check if an object is within a specified distance range.
+ */
+s32 check_object_within_range(s32 arg0, s32 arg1, f32 arg2, u32 arg3) {
     Object *swapTemp;
     s32 var_a0;
     s32 var_a1;
@@ -4611,7 +4694,7 @@ void process_object_interactions(void) {
                     objInteract2 = obj2->interactObj;
                     if (objInteract2->flags & (INTERACT_FLAGS_SOLID | INTERACT_FLAGS_TANGIBLE)) {
                         if (objInteract2->unk11 == 3) {
-                            func_80016748(obj, obj2);
+                            check_vertex_collision(obj, obj2);
                         } else if (objInteract2->unk11 != 2) {
                             xDiff = obj->trans.x_position - obj2->trans.x_position;
                             zDiff = obj->trans.z_position - obj2->trans.z_position;
@@ -4621,7 +4704,7 @@ void process_object_interactions(void) {
                                 radius = 0x40000; // 262144.0f;
                             }
                             if (((xDiff * xDiff) + (zDiff * zDiff)) < radius) {
-                                func_800159C8(obj, obj2);
+                                apply_object_collision_response(obj, obj2);
                             }
                         }
                     }
@@ -4634,7 +4717,7 @@ void process_object_interactions(void) {
                     obj2 = objList[j];
                     objInteract2 = obj2->interactObj;
                     if (objInteract2->unk11 == 3) {
-                        func_80016748(obj, obj2);
+                        check_vertex_collision(obj, obj2);
                     }
                 }
             }
@@ -4650,7 +4733,10 @@ void process_object_interactions(void) {
     }
 }
 
-void func_800159C8(Object *arg0, Object *arg1) {
+/**
+ * Apply physics response when two objects collide, handling velocity transfer and pushback.
+ */
+void apply_object_collision_response(Object *arg0, Object *arg1) {
     f32 sp9C;
     f32 sp98;
     f32 f14;
@@ -4852,7 +4938,7 @@ void func_800159C8(Object *arg0, Object *arg1) {
                 }
             }
             if (var_v0 && sp50->playerIndex != -1) {
-                func_80016500(arg0, sp50);
+                apply_collision_impact(arg0, sp50);
             }
             return;
         }
@@ -4899,17 +4985,20 @@ void func_800159C8(Object *arg0, Object *arg1) {
                     f0 = 2.0 - sp90;
                     arg0->x_velocity -= sp68 * f0;
                     arg0->z_velocity -= sp60 * f0;
-                    func_80016500(arg0, sp50);
+                    apply_collision_impact(arg0, sp50);
                 }
                 arg1->x_velocity += sp68 * sp90;
                 arg1->z_velocity += sp60 * sp90;
-                func_80016500(arg1, sp4C);
+                apply_collision_impact(arg1, sp4C);
             }
         }
     }
 }
 
-void func_80016500(Object *obj, Object_Racer *racer) {
+/**
+ * Handle collision impact effects: velocity change, crash sounds, rumble, and camera shake.
+ */
+void apply_collision_impact(Object *obj, Object_Racer *racer) {
     s32 shakeMagnitude;
     s32 volume;
     s32 angle;
@@ -4964,7 +5053,10 @@ void func_80016500(Object *obj, Object_Racer *racer) {
     }
 }
 
-void func_80016748(Object *obj0, Object *obj1) {
+/**
+ * Check for collision between an object and another object's vertex collision data.
+ */
+void check_vertex_collision(Object *obj0, Object *obj1) {
     ObjectModel *objModel;
     s32 i;
     f32 temp;
@@ -5048,7 +5140,10 @@ void func_80016748(Object *obj0, Object *obj1) {
     }
 }
 
-void func_80016BC4(Object *obj) {
+/**
+ * Initialize collision transform matrices for an object.
+ */
+void init_object_collision(Object *obj) {
     s32 i;
 
     obj->collisionData->mtxFlip = 0;
@@ -5204,6 +5299,9 @@ void obj_collision_transform(Object *obj) {
     colData->collidedObj = NULL;
 }
 
+/**
+ * Tests collision between an object and all collidable object models in the scene.
+ */
 s32 collision_objectmodel(Object *obj, s32 arg1, s32 *arg2, Vec3f *arg3, f32 *arg4, f32 *arg5, s8 *surface) {
     ModelInstance *modInst;
     s32 sp170;
@@ -5286,7 +5384,7 @@ s32 collision_objectmodel(Object *obj, s32 arg1, s32 *arg2, Vec3f *arg3, f32 *ar
         spDC = (MtxF *) &collision->_matrices[((sp158->collisionData->mtxFlip + 1) & 1) << 1];
 #endif
 
-        sp14C = func_8001790C(obj, sp158);
+        sp14C = find_collision_entry(obj, sp158);
         if (sp14C != NULL) {
             for (i = 0, j = 0; j < arg1; j++, i += 3) {
                 sp13C[j] = sp14C->unk0C[i + 0];
@@ -5305,7 +5403,7 @@ s32 collision_objectmodel(Object *obj, s32 arg1, s32 *arg2, Vec3f *arg3, f32 *ar
         }
 
         arg2[0] = 0;
-        tempv0 = func_80017A18(sp154, arg1, arg2, sp13C, sp12C, sp11C, sp100, spF0, spE0, arg5, surface,
+        tempv0 = check_model_plane_intersections(sp154, arg1, arg2, sp13C, sp12C, sp11C, sp100, spF0, spE0, arg5, surface,
                                1.0 / sp158->trans.scale);
         if (tempv0 != 0) {
 
@@ -5316,7 +5414,7 @@ s32 collision_objectmodel(Object *obj, s32 arg1, s32 *arg2, Vec3f *arg3, f32 *ar
         }
 
         if (D_8011AD24[0] == 0) {
-            sp14C = func_80017978(obj, sp158);
+            sp14C = alloc_collision_entry(obj, sp158);
         }
 
 #ifdef AVOID_UB
@@ -5354,7 +5452,10 @@ s32 collision_objectmodel(Object *obj, s32 arg1, s32 *arg2, Vec3f *arg3, f32 *ar
     return sp168;
 }
 
-unk800179D0 *func_8001790C(Object *arg0, Object *arg1) {
+/**
+ * Find and clear a collision tracking entry matching the given object pair.
+ */
+unk800179D0 *find_collision_entry(Object *arg0, Object *arg1) {
     unk800179D0 *entry;
     s16 i;
 
@@ -5368,7 +5469,10 @@ unk800179D0 *func_8001790C(Object *arg0, Object *arg1) {
     return NULL;
 }
 
-unk800179D0 *func_80017978(Object *obj1, Object *obj2) {
+/**
+ * Allocate a free collision tracking entry for a pair of objects.
+ */
+unk800179D0 *alloc_collision_entry(Object *obj1, Object *obj2) {
     unk800179D0 *entry;
     s16 i;
 
@@ -5384,7 +5488,10 @@ unk800179D0 *func_80017978(Object *obj1, Object *obj2) {
     return NULL;
 }
 
-u32 func_800179D0(void) {
+/**
+ * Decrement all active object timers by one tick.
+ */
+u32 object_timers_tick(void) {
     s16 i = 0;
     while (i < 16) {
         unk800179D0 *temp = &D_8011AFF4[i];
@@ -5400,7 +5507,10 @@ u32 func_800179D0(void) {
 
 // https://decomp.me/scratch/xNAlf
 #ifdef NON_EQUIVALENT
-s32 func_80017A18(ObjectModel *arg0, s32 arg1, s32 *arg2, f32 *arg3, f32 *arg4, f32 *arg5, f32 *arg6, f32 *arg7,
+/**
+ * Check ray-plane intersections against an object model's triangle faces.
+ */
+s32 check_model_plane_intersections(ObjectModel *arg0, s32 arg1, s32 *arg2, f32 *arg3, f32 *arg4, f32 *arg5, f32 *arg6, f32 *arg7,
                   f32 *arg8, f32 *arg9, s8 *argA, f32 argB) {
     f32 *planes;
     s32 i, j, k;
@@ -5529,7 +5639,7 @@ s32 func_80017A18(ObjectModel *arg0, s32 arg1, s32 *arg2, f32 *arg3, f32 *arg4, 
     return spF8;
 }
 #else
-#pragma GLOBAL_ASM("asm/nonmatchings/objects/func_80017A18.s")
+#pragma GLOBAL_ASM("asm/nonmatchings/objects/check_model_plane_intersections.s")
 #endif
 
 /**
@@ -5883,7 +5993,10 @@ Object *find_taj_object(void) {
 }
 
 // Handles MidiFadePoint, MidiFade, and MidiSetChannel objects?
-void func_80018CE0(Object *racerObj, f32 xPos, f32 yPos, f32 zPos, s32 updateRate) {
+/**
+ * Spawn particle effects at a racer's position during gameplay.
+ */
+void spawn_racer_particles(Object *racerObj, f32 xPos, f32 yPos, f32 zPos, s32 updateRate) {
     f32 temp_f0;
     s32 pad_spF8;
     s32 spF4;
@@ -6688,12 +6801,12 @@ void race_transition_adventure(s32 updateRate) {
     if (gRaceEndStage == 2) {
         prevPort0Racer = (*gRacers)[0];
         racer = prevPort0Racer->racer;
-        func_800230D0(prevPort0Racer, racer);
+        get_racer_spawn_checkpoint(prevPort0Racer, racer);
         racer->raceFinished = FALSE;
         gRaceEndStage = 3;
-        func_8001E45C(CUTSCENE_ID_UNK_A);
+        set_cutscene_id(CUTSCENE_ID_UNK_A);
         gBalloonCutsceneTimer = 0;
-        func_8001E93C();
+        init_cutscene_objects();
     }
     if (gRaceEndStage == 3) {
         transition_begin(&gRaceEndTransition);
@@ -6721,7 +6834,7 @@ void race_transition_adventure(s32 updateRate) {
         if (!(settings->cutsceneFlags & 0x40000)) {
             i = 0;
         }
-        if (func_800214C4() != 0 || (i != 0 && check_fadeout_transition() == 0)) {
+        if (get_cutscene_active() != 0 || (i != 0 && check_fadeout_transition() == 0)) {
             if (i != 0) {
                 transition_begin(&gBalloonCutsceneTransition);
             }
@@ -7232,7 +7345,7 @@ UNUSED void debug_render_checkpoints(Gfx **dList, Mtx **mtx, Vertex **vtx) {
 }
 
 /**
- * Would've rendered an individual checkpoint node. On https://noclip.website, with dev objects enabled, you can see a
+ * Would've rendered an individual checkpoint node. On https:noclip.website, with dev objects enabled, you can see a
  * visual representation of what these checkpoints would've looked like ingame.
  */
 UNUSED void debug_render_checkpoint_node(UNUSED s32 checkpointID, UNUSED s32 pathID, UNUSED Gfx **dList,
@@ -7275,6 +7388,9 @@ void spectate_update(void) {
     } while (!continueLoop);
 }
 
+/**
+ * Returns the camera object at the given index, or NULL if the index is out of range.
+ */
 Object *spectate_object(s32 cameraIndex) {
     if (cameraIndex < 0 || cameraIndex >= gCameraObjCount) {
         return NULL;
@@ -7528,7 +7644,10 @@ s32 ainode_find_nearest(f32 diffX, f32 diffY, f32 diffZ, s32 useElevation) {
 }
 
 // Updated Object_NPC
-f32 func_8001C6C4(Object_NPC *npc, Object *npcParentObj, f32 updateRateF, f32 speedF, s32 direction) {
+/**
+ * Update NPC movement along a spline path, returning the speed factor.
+ */
+f32 update_npc_path_movement(Object_NPC *npc, Object *npcParentObj, f32 updateRateF, f32 speedF, s32 direction) {
     f32 xPositions[5];
     f32 yPositions[5];
     f32 zPositions[5];
@@ -7654,6 +7773,9 @@ f32 func_8001C6C4(Object_NPC *npc, Object *npcParentObj, f32 updateRateF, f32 sp
     return dist;
 }
 
+/**
+ * Finds the next AI navigation node adjacent to the given node, avoiding the previously visited node.
+ */
 s32 ainode_find_next(s32 nodeId, s32 nextNodeId, s32 direction) {
     Object *aiNodeObj;
     LevelObjectEntry_AiNode *entry;
@@ -7692,7 +7814,10 @@ s32 ainode_find_next(s32 nodeId, s32 nextNodeId, s32 direction) {
     }
 }
 
-s16 func_8001CD28(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
+/**
+ * Calculate which path segment index corresponds to the given coordinates.
+ */
+s16 calculate_path_segment_index(s32 arg0, s32 arg1, s32 arg2, s32 arg3) {
     s16 result;
     s32 sp370;
     s16 var_t1;
@@ -7851,7 +7976,10 @@ Object *ainode_get(s32 nodeID) {
     return NULL;
 }
 
-UNUSED void func_8001D248(UNUSED s32 arg0, UNUSED s32 arg1, UNUSED s32 arg2) {
+/**
+ * Unused debug function for path data.
+ */
+UNUSED void unused_path_debug(UNUSED s32 arg0, UNUSED s32 arg1, UNUSED s32 arg2) {
 }
 
 /**
@@ -7897,6 +8025,9 @@ UNUSED void add_shading_properties(Object *obj, f32 ambientChange, f32 diffuseCh
     }
 }
 
+/**
+ * Configures the shading properties for an object including ambient-diffuse levels and light direction angles.
+ */
 void set_shading_properties(ShadeProperties *arg0, f32 ambient, f32 diffuse, s16 angleX, s16 angleY, s16 angleZ) {
     Vec3s angle;
     Vec3f velocityPos;
@@ -7979,6 +8110,9 @@ void obj_shade_fancy(ObjectModel *model, Object *object, s32 arg2, f32 intensity
     }
 }
 
+/**
+ * Calculates per-vertex dynamic lighting for an object model using its shading and normal data.
+ */
 void calc_dynamic_lighting_for_object_1(Object *object, ObjectModel *model, s16 arg2, Object *anotherObject,
                                         f32 intensity, f32 arg5) {
     s16 normIdx;
@@ -8079,6 +8213,9 @@ void calc_dynamic_lighting_for_object_1(Object *object, ObjectModel *model, s16 
     }
 }
 
+/**
+ * Computes environment mapping texture coordinates for an object model based on its rotation.
+ */
 void calc_env_mapping_for_object(ObjectModel *model, s16 zRot, s16 xRot, s16 yRot) {
     MtxS objRotMtxS32;
     MtxF objRotMtxF32;
@@ -8279,7 +8416,10 @@ void cutscene_id_set(s32 cutsceneID) {
     gCutsceneID = cutsceneID;
 }
 
-void func_8001E45C(s32 cutsceneID) {
+/**
+ * Set the active cutscene ID and reset path update state.
+ */
+void set_cutscene_id(s32 cutsceneID) {
     if (cutsceneID != gCutsceneID) {
         gCutsceneID = cutsceneID;
         gPathUpdateOff = FALSE;
@@ -8298,7 +8438,10 @@ UNUSED s32 get_object_list_index(void) {
     return gObjectListStart;
 }
 
-void func_8001E4C4(void) {
+/**
+ * Sort the object list so cutscene-visible objects are ordered first.
+ */
+void sort_objects_by_cutscene(void) {
     Object *obj;
     s32 lastObjCount;
     s32 curObjCount;
@@ -8350,7 +8493,10 @@ void func_8001E4C4(void) {
     gFirstActiveObjectId = 0;
 }
 
-void func_8001E6EC(s8 arg0) {
+/**
+ * Apply position overrides for objects during cutscene playback.
+ */
+void apply_cutscene_position_overrides(s8 arg0) {
     LevelObjectEntry_OverridePos *overridePosEntry;
     Object *overridePosObj;
     Object_OverridePos *overridePos;
@@ -8387,7 +8533,10 @@ void func_8001E6EC(s8 arg0) {
     D_8011AE01 = FALSE;
 }
 
-void func_8001E89C(void) {
+/**
+ * Restore object positions after cutscene override positions were applied.
+ */
+void restore_cutscene_positions(void) {
     s32 i;
     Object *obj;
     Object_OverridePos *obj64;
@@ -8411,7 +8560,10 @@ void func_8001E89C(void) {
     }
 }
 
-void func_8001E93C(void) {
+/**
+ * Initialize cutscene objects by collecting animations and override positions.
+ */
+void init_cutscene_objects(void) {
     s32 pad[3];
     LevelObjectEntry_OverridePos *overridePos;
     Object *obj;
@@ -8441,7 +8593,7 @@ void func_8001E93C(void) {
     if (D_8011AD3E > 20) {
         D_8011AD3E = 0;
     }
-    func_8001E4C4();
+    sort_objects_by_cutscene();
     numOfObjs = 0;
     for (i = 0; i < gObjectCount; i++) {
         if (gObjPtrList[i] != NULL) {
@@ -8524,12 +8676,15 @@ void func_8001E93C(void) {
 
     D_8011AE78 = numOfObjs;
     if (D_8011AE7E) {
-        func_8001EE74();
+        spawn_cutscene_animation_targets();
     }
     D_8011AE7E = FALSE;
 }
 
-void func_8001EE74(void) {
+/**
+ * Spawn animation target objects for the current cutscene.
+ */
+void spawn_cutscene_animation_targets(void) {
     LevelObjectEntry_Animation *animation;
     Object *obj;
     s32 i;
@@ -8538,7 +8693,7 @@ void func_8001EE74(void) {
         obj = D_8011AE74[i];
         animation = &obj->level_entry->animation;
         if (obj->animTarget == NULL && animation->order == 0 && animation->objectIdToSpawn != -1) {
-            func_8001F23C(obj, animation);
+            spawn_cutscene_object(obj, animation);
         }
         if (D_8011AD26 || animation->channel != 20) {
             if (obj->animTarget != NULL) {
@@ -8549,6 +8704,9 @@ void func_8001EE74(void) {
     D_8011AD26 = FALSE;
 }
 
+/**
+ * Initialises an animated object's transform, scale, and animation parameters from a level animation entry.
+ */
 void obj_init_animobject(Object *animationObj, Object *animatedObj) {
     LevelObjectEntry_Animation *animEntry;
     Object_AnimatedObject *anim;
@@ -8618,7 +8776,10 @@ void obj_init_animobject(Object *animationObj, Object *animatedObj) {
     anim->unk45 = 0;
 }
 
-void func_8001F23C(Object *obj, LevelObjectEntry_Animation *animEntry) {
+/**
+ * Spawn a new object as an animation target for a cutscene entry.
+ */
+void spawn_cutscene_object(Object *obj, LevelObjectEntry_Animation *animEntry) {
     s32 i;
     LevelObjectEntryCommon newObjEntry;
     Object *newObj;
@@ -8662,18 +8823,27 @@ void func_8001F23C(Object *obj, LevelObjectEntry_Animation *animEntry) {
     }
 }
 
-s8 func_8001F3B8(void) {
+/**
+ * Returns the index of the currently active cutscene actor.
+ */
+s8 get_cutscene_actor_index(void) {
     return D_8011ADD4;
 }
 
-void func_8001F3C8(s32 arg0) {
+/**
+ * Sets the active cutscene actor index, resetting the animated object count if the actor changed.
+ */
+void set_cutscene_actor_index(s32 arg0) {
     if (arg0 != D_8011ADD4) {
         D_8011AE78 = 0;
     }
     D_8011ADD4 = arg0;
 }
 
-s32 func_8001F3EC(s32 arg0) {
+/**
+ * Counts the number of registered animated objects that match the given behaviour ID.
+ */
+s32 count_animated_objects_by_behaviour(s32 arg0) {
     s32 i;
     s32 count;
     if (D_8011AE78 == 0) {
@@ -8690,11 +8860,17 @@ s32 func_8001F3EC(s32 arg0) {
     return count;
 }
 
-void func_8001F450(void) {
+/**
+ * Enables the flag that allows animated objects to skip their pause state.
+ */
+void set_animated_object_pause_skip(void) {
     D_8011AD53 = 1;
 }
 
-s32 func_8001F460(Object *arg0, s32 arg1, Object *arg2) {
+/**
+ * Advances an animated object along its spline path, handling delays, visibility, sound, fog, and camera transitions.
+ */
+s32 update_animated_object_spline(Object *arg0, s32 arg1, Object *arg2) {
     f32 var_f2;
     f32 var_f0;
     f32 var_f20;
@@ -8771,9 +8947,9 @@ s32 func_8001F460(Object *arg0, s32 arg1, Object *arg2) {
         if (obj64->startDelay <= 0) {
             obj64->unk45 = 1;
             temp_s1 = &obj64->unk1C->level_entry->animation;
-            func_80021104(arg0, obj64, temp_s1);
+            update_animated_object_path(arg0, obj64, temp_s1);
             obj64->startDelay = 0;
-            func_8002125C(arg0, temp_s1, obj64, -1);
+            init_animated_object_from_entry(arg0, temp_s1, obj64, -1);
         }
     }
     if (obj64->startDelay != 0) {
@@ -8948,21 +9124,21 @@ s32 func_8001F460(Object *arg0, s32 arg1, Object *arg2) {
     }
 
     if (obj64->unk8 <= 0.0) {
-        return func_800214E4(arg0, arg1);
+        return update_object_animation_state(arg0, arg1);
     }
 
     temp_a1_2 = obj64->actorIndex;
     for (var_s4 = 0; var_s4 < D_8011AE78 && temp_a1_2 != D_8011AE74[var_s4]->properties.animation.behaviourID;
          var_s4++) {}
     if (var_s4 >= D_8011AE78) {
-        return func_800214E4(arg0, arg1);
+        return update_object_animation_state(arg0, arg1);
     }
 
     for (var_s5 = 1;
          (var_s4 + var_s5) < D_8011AE78 && temp_a1_2 == D_8011AE74[var_s4 + var_s5]->properties.animation.behaviourID;
          var_s5++) {}
     if (var_s5 < 2) {
-        return func_800214E4(arg0, arg1);
+        return update_object_animation_state(arg0, arg1);
     }
 
     sp168 = -1;
@@ -8976,7 +9152,7 @@ s32 func_8001F460(Object *arg0, s32 arg1, Object *arg2) {
     }
 
     if (sp168 == -1 && obj64->unk26 >= var_s5 - 1) {
-        return func_800214E4(arg0, arg1);
+        return update_object_animation_state(arg0, arg1);
     }
 
     if (obj64->pauseCounter >= 0) {
@@ -9224,7 +9400,7 @@ s32 func_8001F460(Object *arg0, s32 arg1, Object *arg2) {
                 obj64->unk26 = var_s5 - 1;
             } else {
                 temp_s1 = &D_8011AE74[var_s4 + obj64->unk26]->level_entry->animation;
-                func_8002125C(arg0, temp_s1, obj64, var_s4);
+                init_animated_object_from_entry(arg0, temp_s1, obj64, var_s4);
             }
         } else {
             if (var_s5 < obj64->unk26) {
@@ -9236,7 +9412,7 @@ s32 func_8001F460(Object *arg0, s32 arg1, Object *arg2) {
             }
             var_s2 += var_s4;
             temp_s1 = &D_8011AE74[var_s2]->level_entry->animation;
-            func_8002125C(arg0, temp_s1, obj64, var_s4);
+            init_animated_object_from_entry(arg0, temp_s1, obj64, var_s4);
         }
     }
     if (obj64->unk2E == 3) {
@@ -9261,7 +9437,10 @@ s32 func_8001F460(Object *arg0, s32 arg1, Object *arg2) {
     return 0;
 }
 
-s32 func_800210CC(s8 arg0) {
+/**
+ * Sets the camera animation priority level, succeeding only if the given priority is at least the current value.
+ */
+s32 set_camera_animation_priority(s8 arg0) {
     if (arg0 >= D_8011AD3D) {
         D_8011AD3D = arg0;
         return TRUE;
@@ -9269,7 +9448,10 @@ s32 func_800210CC(s8 arg0) {
     return FALSE;
 }
 
-void func_80021104(Object *obj, Object_AnimatedObject *animObj, LevelObjectEntry_Animation *entry) {
+/**
+ * Update an animated object's position along its path nodes.
+ */
+void update_animated_object_path(Object *obj, Object_AnimatedObject *animObj, LevelObjectEntry_Animation *entry) {
     Camera *camera;
     ObjectTransform *animObjTrans;
 
@@ -9301,7 +9483,10 @@ void func_80021104(Object *obj, Object_AnimatedObject *animObj, LevelObjectEntry
     }
 }
 
-void func_8002125C(Object *obj, LevelObjectEntry_Animation *entry, Object_AnimatedObject *animObj, UNUSED s32 index) {
+/**
+ * Initialize an animated object from a level animation entry.
+ */
+void init_animated_object_from_entry(Object *obj, LevelObjectEntry_Animation *entry, Object_AnimatedObject *animObj, UNUSED s32 index) {
     s32 initialAnimFrame;
 
     initialAnimFrame = entry->objAnimIndex;
@@ -9330,18 +9515,21 @@ void func_8002125C(Object *obj, LevelObjectEntry_Animation *entry, Object_Animat
         set_current_text(entry->messageId);
     }
     if (entry->unk2A >= 0) {
-        func_8001E45C(entry->unk2A);
+        set_cutscene_id(entry->unk2A);
         return;
     }
     if (entry->unk15 >= 0) {
-        func_80021400(entry->unk15);
+        set_animation_pause_state(entry->unk15);
     }
     if (entry->unk28 >= 0) {
         D_8011AD22[D_8011AD21]++;
     }
 }
 
-void func_80021400(s32 arg0) {
+/**
+ * Set or clear the animation pause state for cutscenes.
+ */
+void set_animation_pause_state(s32 arg0) {
     s32 i;
     arg0 &= 0xFF; //?
 
@@ -9356,11 +9544,17 @@ void func_80021400(s32 arg0) {
     }
 }
 
-s8 func_800214C4(void) {
+/**
+ * Return whether a cutscene is currently active.
+ */
+s8 get_cutscene_active(void) {
     return D_8011AD22[1 - D_8011AD21];
 }
 
-s8 func_800214E4(Object *obj, s32 updateRate) {
+/**
+ * Update the animation state of an object each frame.
+ */
+s8 update_object_animation_state(Object *obj, s32 updateRate) {
     s32 i;
     Object_AnimatedObject *animObj;
 
@@ -9388,7 +9582,10 @@ s8 func_800214E4(Object *obj, s32 updateRate) {
     return 0;
 }
 
-s32 func_80021600(s32 arg0) {
+/**
+ * Return the number of animation actors for the given cutscene channel.
+ */
+s32 get_animation_actor_count(s32 arg0) {
     Object_AnimatedObject *objAnim;
     s32 i;
     Object *sp154;
@@ -9643,6 +9840,9 @@ s32 func_80021600(s32 arg0) {
     return FALSE;
 }
 
+/**
+ * Evaluates a Catmull-Rom spline at position x using four control points starting at the given index.
+ */
 f32 catmull_rom_interpolation(f32 *data, s32 index, f32 x) {
     f32 ret;
     f32 c, b, a;
@@ -9675,6 +9875,9 @@ f32 cubic_spline_interpolation(f32 *data, s32 index, f32 x, f32 *derivative) {
     return ret;
 }
 
+/**
+ * Computes the derivative of a Catmull-Rom spline at position x for velocity-tangent calculations.
+ */
 f32 catmull_rom_derivative(f32 *data, s32 index, f32 x) {
     f32 derivative;
     f32 c, b, a;
@@ -9708,7 +9911,10 @@ f32 lerp_and_get_derivative(f32 *data, u32 index, f32 t, f32 *derivative) {
     return lerp;
 }
 
-UNUSED void func_800228DC(UNUSED s32 arg0, UNUSED s32 arg1, UNUSED s32 arg2) {
+/**
+ * Unused debug function for animation data.
+ */
+UNUSED void unused_animation_debug(UNUSED s32 arg0, UNUSED s32 arg1, UNUSED s32 arg2) {
 }
 
 /**
@@ -9755,7 +9961,7 @@ void mode_init_taj_race(void) {
         racerObj = get_racer_object(PLAYER_ONE);
         racer = racerObj->racer;
         gIsTajChallenge = racer->vehicleID + 1;
-        checkpointNode = func_800230D0(racerObj, racer);
+        checkpointNode = get_racer_spawn_checkpoint(racerObj, racer);
         racer->cameraYaw = 0x8000 - racer->steerVisualRotation;
         racer->wrongWayCounter = 0;
         racer->startInput = 0;
@@ -9921,7 +10127,10 @@ void mode_end_taj_race(s32 reason) {
     gIsTajChallenge = FALSE;
 }
 
-CheckpointNode *func_800230D0(Object *obj, Object_Racer *racer) {
+/**
+ * Get the spawn checkpoint node for a racer, falling back to setup points if no checkpoints exist.
+ */
+CheckpointNode *get_racer_spawn_checkpoint(Object *obj, Object_Racer *racer) {
     CheckpointNode *lastCheckpointNode;
     Camera *activeCameraSegment;
     s32 yOutCount;
@@ -10040,7 +10249,10 @@ Object *find_furthest_telepoint(f32 x, f32 z) {
     return bestObj;
 }
 
-s32 func_80023568(void) {
+/**
+ * Return the count of currently active animation objects.
+ */
+s32 get_active_animation_count(void) {
     if (D_8011AD3C != 0) {
         return D_8011AD24[1] + 1;
     } else if (level_type() == RACETYPE_BOSS) {
@@ -10863,16 +11075,25 @@ void run_object_loop_func(Object *obj, s32 updateRate) {
     update_object_stack_trace(OBJECT_UPDATE, OBJECT_CLEAR);
 }
 
-UNUSED void func_8002458C(UNUSED s32 arg0) {
+/**
+ * Unused debug function for object data.
+ */
+UNUSED void unused_object_debug(UNUSED s32 arg0) {
 }
 
-s16 *func_80024594(s32 *currentCount, s32 *maxCount) {
+/**
+ * Returns the draw distance buffer and outputs the current entry count and maximum capacity.
+ */
+s16 *get_object_draw_distance_buffer(s32 *currentCount, s32 *maxCount) {
     *currentCount = D_800DC700;
     *maxCount = ARRAY_COUNT(D_8011AC20);
     return D_8011AC20;
 }
 
-void func_800245B4(s16 arg0) {
+/**
+ * Set the draw distance for object rendering.
+ */
+void set_object_draw_distance(s16 arg0) {
     D_8011AC20[D_800DC700++] = arg0;
     if (D_800DC700 >= ARRAY_COUNT(D_8011AC20)) {
         D_800DC700 = 0;
