@@ -8194,6 +8194,7 @@ void update_racer_checkpoint_navigation(Object *obj, Object_Racer *racer, s32 up
     UNUSED f32 pad;
     UNUSED f32 pad2;
     s32 temp_v0;
+    Object_Racer *new_var2;
     CheckpointNode *temp_v0_4;
     f32 posX[5];
     f32 posY[5];
@@ -8210,6 +8211,8 @@ void update_racer_checkpoint_navigation(Object *obj, Object_Racer *racer, s32 up
     f32 diffZ;
     f32 distance;
     f32 divisor;
+    float new_var;
+    f32 new_var3;
     f32 scale;
     s32 splineIndex;
     s32 i;
@@ -8255,23 +8258,25 @@ void update_racer_checkpoint_navigation(Object *obj, Object_Racer *racer, s32 up
         splinePos = 0.0f;
     }
     temp_v0_4 = find_next_checkpoint_node(racer->nextCheckpoint, racer->isOnAlternateRoute);
-    scale = temp_v0_4->scale;
+    distance = (scale = temp_v0_4->scale);
     counter = racer->nextCheckpoint - 1;
+    new_var2 = racer;
     if (counter < 0) {
         counter = temp_v0 - 1;
     }
     temp_v0_4 = get_checkpoint_node(counter);
-    distance = temp_v0_4->scale;
     divisor = ((scale - temp_v0_4->scale) * splinePos) + distance;
-    counter = racer->nextCheckpoint - 2;
+    counter = new_var2->nextCheckpoint - 2;
     if (counter < 0) {
         counter += temp_v0;
+        if (splinePos) {}
     }
     for (i = 0; (i < 5) ^ 0; i++) {
-        temp_v0_4 = find_next_checkpoint_node(counter, racer->isOnAlternateRoute);
-        posX[i] = temp_v0_4->x + ((temp_v0_4->scale * temp_v0_4->rotationZFrac) * racer->unk1BA);
+        temp_v0_4 = find_next_checkpoint_node(counter, new_var2->isOnAlternateRoute);
+        posX[i] = temp_v0_4->x + ((temp_v0_4->scale * temp_v0_4->rotationZFrac) * new_var2->unk1BA);
         posY[i] = temp_v0_4->y + (temp_v0_4->scale * racer->unk1BC);
-        posZ[i] = temp_v0_4->z + ((temp_v0_4->scale * (-temp_v0_4->rotationXFrac)) * racer->unk1BA);
+        ;
+        posZ[i] = temp_v0_4->z + ((temp_v0_4->scale * (-temp_v0_4->rotationXFrac)) * new_var2->unk1BA);
         counter++;
         if (counter == temp_v0) {
             counter = 0;
@@ -8287,39 +8292,46 @@ void update_racer_checkpoint_navigation(Object *obj, Object_Racer *racer, s32 up
     tempZ = cubic_spline_interpolation(posZ, splineIndex, splinePos, &diffZ);
     distance = sqrtf((diffX * diffX) + (diffZ * diffZ));
     if (distance != 0.0f) {
-        scale = 1.0f / distance;
+        new_var3 = distance;
+        scale = 1.0f / new_var3;
         diffX *= scale;
         diffZ *= scale;
     }
-    angle = arctan2_f(diffX, diffZ) - (racer->steerVisualRotation & 0xFFFF) - 0x8000;
+    angle = arctan2_f(diffX, diffZ) - (new_var2->steerVisualRotation & 0xFFFF) - 0x8000;
     WRAP(angle, -0x8000, 0x8000);
     if (angle > 0x4000 || angle < -0x4000) {
-        if (racer->wrongWayCounter < 200 && racer->velocity <= -1.0) {
+        if (new_var2->wrongWayCounter < 200 && racer->velocity <= -1.0) {
             racer->wrongWayCounter += updateRate;
         }
     } else {
-        racer->wrongWayCounter = 0;
+        new_var2->wrongWayCounter = 0;
     }
     diffY = diffX;
     diffX = diffZ;
     diffZ = -diffY;
 
+    scale = obj->trans.z_position;
     splinePos = obj->trans.x_position;
-    distance = obj->trans.z_position;
-    pad = ((splinePos * diffX) + (diffZ * distance));
-    pad2 = -((tempZ * diffZ) + (diffX * tempX));
+    distance = scale;
+    splinePos = diffZ;
+    pad = (splinePos * distance) + (splinePos * diffX);
+    pad2 = -((tempZ * splinePos) + (diffX * tempX));
     diffX = -((pad + pad2) / divisor);
     if (diffX > 5.0f) {
+        pad2++;
+        pad2--;
         diffX = 5.0f;
     }
     if (diffX < -5.0f) {
         diffX = -5.0f;
     }
-    racer->unk1BA += (s32) diffX;
+    new_var2->unk1BA += (s32) diffX;
     diffY = (obj->trans.y_position - tempY) / divisor;
     if (diffY > 100.0f) {
+        scale = temp_v0_4->scale;
         diffY = 100.0f;
     }
+    if (!diffX) {}
     if (diffY < -100.0f) {
         diffY = -100.0f;
     }

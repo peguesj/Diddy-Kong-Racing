@@ -5536,7 +5536,6 @@ s32 check_model_plane_intersections(ObjectModel *arg0, s32 arg1, s32 *arg2, f32 
     f32 y2; // a0
     f32 z2; // 9c
     CollisionNode *node;
-    f32 dx, dy, dz;
     s32 triIndex;
     s32 closestTri;
 
@@ -5550,12 +5549,12 @@ s32 check_model_plane_intersections(ObjectModel *arg0, s32 arg1, s32 *arg2, f32 
         z1 = arg8[i];
         spC0 = arg9[i] * argB;
 
+        x2 = *arg3++;
+        y2 = *arg4;
+        z2 = *arg5;
         counter = 0;
         do {
             redoLoop = FALSE;
-            x2 = arg3[i];
-            y2 = arg4[i];
-            z2 = arg5[i];
 
             for (j = 0; j < arg0->collisionFacetCount; j++) {
                 node = (CollisionNode *) &arg0->collisionFacets[j];
@@ -5634,6 +5633,8 @@ s32 check_model_plane_intersections(ObjectModel *arg0, s32 arg1, s32 *arg2, f32 
             spF8 |= var_s6;
         }
         var_s6 <<= 1;
+        arg4++;
+        arg5++;
     }
 
     return spF8;
