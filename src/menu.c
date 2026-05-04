@@ -8880,7 +8880,7 @@ void trackmenu_render_names(UNUSED s32 updateRate) {
     } else {
         maxTrackY = 4;
     }
-    trackSelectX = (gTrackSelectX / 320);
+    trackSelectX = (gTrackSelectX / 320.0f);
     trackY = (gTrackSelectY / -gTrackSelectViewportY);
     trackSelectY = trackY - 1;
     startIndex = -1;
