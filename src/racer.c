@@ -8212,7 +8212,6 @@ void update_racer_checkpoint_navigation(Object *obj, Object_Racer *racer, s32 up
     f32 distance;
     f32 divisor;
     float new_var;
-    f32 new_var3;
     f32 scale;
     s32 splineIndex;
     s32 i;
@@ -8292,8 +8291,7 @@ void update_racer_checkpoint_navigation(Object *obj, Object_Racer *racer, s32 up
     tempZ = cubic_spline_interpolation(posZ, splineIndex, splinePos, &diffZ);
     distance = sqrtf((diffX * diffX) + (diffZ * diffZ));
     if (distance != 0.0f) {
-        new_var3 = distance;
-        scale = 1.0f / new_var3;
+        scale = 1.0f / distance;
         diffX *= scale;
         diffZ *= scale;
     }
